@@ -1,17 +1,63 @@
-/* Font setup */
 body {
-  font-family: "Fira Sans", sans-serif;
-  margin: 0;
-  padding: 0 1.2rem;
-  background: #fff;
+  font-family: "Roboto Slab", serif;
+  background: #fafafa;
   color: #222;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  text-align: center;
+  padding-top: 70px;
 }
 
-/* Titles and headings */
+/* Site wide max width */
+.site-max {
+  max-width: 1180px; /* riduce la larghezza massima rispetto al container bootstrap pieno */
+}
+
+@media (min-width: 1400px) {
+  .site-max {
+    max-width: 1180px; /* mantieni costante su schermi molto grandi */
+  }
+}
+
+/* Contenuto testuale più stretto dentro le card */
+.card-narrow {
+  max-width: 880px; /* riduce la larghezza del testo per leggibilità */
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Card container più stretto */
+.card-shell-narrow {
+  max-width: 1200px; /* widened to allow side-by-side charts */
+  margin-left: auto;
+  margin-right: auto;
+}
+
+@media (max-width: 576px) {
+  .card-narrow {
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+  }
+}
+
+/* Font e colore globali */
+html,
+body,
+p,
+span,
+a,
+li,
+dt,
+dd,
+th,
+td,
+button,
+input,
+label {
+  font-family: "Roboto Slab", serif;
+  color: #222;
+}
+
 h1,
 h2,
 h3,
@@ -19,38 +65,144 @@ h4,
 h5,
 h6 {
   font-family: "Roboto Slab", serif;
-  margin: 0.5em 0;
+  font-weight: 600;
+  color: #222;
 }
 
-/* Header */
-header {
-  margin-top: 3rem;
+/* Testo nei grafici D3 (SVG) */
+svg text,
+.chart text,
+.d3-chart text {
+  font-family: "Roboto Slab", serif !important;
+  fill: #222;
 }
 
-/* Main content */
-main {
-  flex: 1;
+/* Link */
+a {
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
 }
 
-/* Paragraphs */
-p {
-  font-family: "Fira Sans", sans-serif;
-  font-size: 1.1em;
-  margin: 10px 0;
+/* Utility */
+.text-muted {
+  color: #555 !important;
+}
+.text-light {
+  color: #666 !important;
 }
 
-/* Footer fixed at bottom */
-footer {
-  font-size: 0.85em;
-  color: #555;
-  margin-top: 2rem;
-  padding: 1rem 0 1.5rem;
-  border-top: 1px solid #e1e1e1;
+html {
+  scroll-behavior: smooth;
 }
 
-.subtitle {
-  font-size: 1.05em;
-  font-weight: 500;
-  margin-top: 0.5rem;
-  color: #444;
+#charts {
+  scroll-margin-top: 80px;
+}
+
+#intro {
+  scroll-margin-top: 80px;
+}
+
+@media (max-width: 991.98px) {
+  .navbar-toggler,
+  .navbar-toggler:focus,
+  .navbar-toggler:active,
+  .navbar-toggler:hover {
+    box-shadow: none !important;
+    outline: none !important;
+    border: none !important;
+    background-color: transparent;
+  }
+}
+
+/* === Unified chart component scaffolding === */
+.chart-wrapper {
+  position: relative;
+  margin-bottom: 2rem;
+}
+
+.chart-wrapper .h4,
+.chart-wrapper .h3 {
+  line-height: 1.25;
+}
+
+.chart-wrapper svg {
+  max-width: 100%;
+}
+
+.chart-controls,
+.chart-wrapper .waffle-controls {
+  min-height: 32px;
+}
+
+/* (Removed custom filter layout; using Bootstrap utility classes instead) */
+
+/* Shared tooltip style */
+.chart-tooltip {
+  position: absolute;
+  pointer-events: none;
+  display: none;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  border-radius: 4px;
+  font-size: 12px;
+  z-index: 1000;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Side-by-side fatalities charts layout */
+.charts-side-by-side {
+  width: 100%;
+  justify-content: center; /* center children horizontally */
+}
+.chart-sub {
+  flex: 0 0 440px; /* fixed basis for alignment */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+@media (max-width: 991.98px) {
+  .charts-side-by-side {
+    flex-direction: column !important;
+  }
+  .chart-sub {
+    width: 100%;
+    flex: 1 1 auto;
+  }
+}
+
+/* Shared year select sizing & centering */
+#fatalities-shared-controls {
+  text-align: center;
+}
+#fatalities-shared-controls .shared-year-select {
+  width: auto;
+  min-width: 90px;
+  flex: 0 0 auto;
+  padding-right: 1.75rem; /* keep arrow visible without full width */
+}
+#fatalities-shared-controls label {
+  margin-right: 4px;
+}
+
+/* Centro solo il nome del paese nel tooltip del circle packing */
+.chart-tooltip .tt-country {
+  text-align: center;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+/* Accessibility improvements */
+.chart-wrapper:focus-within .chart-tooltip {
+  outline: none;
+}
+
+@media (max-width: 576px) {
+  .chart-wrapper svg {
+    width: 100% !important;
+    height: auto !important;
+  }
 }

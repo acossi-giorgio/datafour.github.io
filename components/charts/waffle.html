@@ -1,0 +1,72 @@
+<div
+  id="waffle-chart"
+  class="chart-wrapper card-shell-narrow"
+  style="font-family: 'Roboto Slab', serif"
+>
+  <div class="h5 mb-2 fw-bold text-center">In depth analysis by country</div>
+  <div
+    class="d-flex flex-wrap justify-content-center align-items-center gap-4 mb-3 waffle-controls"
+    id="waffle-controls"
+  >
+    <div class="d-flex align-items-center gap-2">
+      <label
+        for="waffle-year-select"
+        class="text-uppercase small fw-semibold mb-0"
+        >Year</label
+      >
+      <select
+        id="waffle-year-select"
+        class="form-select form-select-sm"
+      ></select>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <label
+        for="waffle-country-select"
+        class="text-uppercase small fw-semibold mb-0"
+        >Country</label
+      >
+      <select
+        id="waffle-country-select"
+        class="form-select form-select-sm"
+      ></select>
+    </div>
+  </div>
+  <div class="mx-auto mb-4 d-flex justify-content-center position-relative">
+    <svg
+      id="waffle-svg"
+      width="300"
+      height="330"
+      style="max-width: 100%; display: block; margin: 0 auto"
+    ></svg>
+  </div>
+  <div
+    id="waffle-tooltip"
+    style="
+      position: absolute;
+      pointer-events: none;
+      display: none;
+      padding: 6px 10px;
+      background: rgba(0, 0, 0, 0.75);
+      color: #fff;
+      border-radius: 4px;
+      font-size: 12px;
+    "
+  ></div>
+  <p
+    id="waffle-story"
+    class="mt-3 mb-0 fw-semibold text-center"
+    aria-live="polite"
+  ></p>
+  <div class="card-narrow">
+    <p class="mt-4 mb-0 text-muted small text-start">
+      Analyzing the composition of violent events reveals a disturbing trend:
+      the number of attacks directly targeting civilians, such as sexual
+      violence, attacks, abductions, or forced disappearances, is constantly
+      growing, overcoming other traditional forms of violence such as armed
+      clashes, suicide bombs, drone strikes or missile attacks. These graphs
+      show how violence is not the same everywhere. But everywhere it is
+      civilians who pay the price, who have become the real battlefield of the
+      Middle Eastern conflict.
+    </p>
+  </div>
+</div>
