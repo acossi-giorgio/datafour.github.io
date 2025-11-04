@@ -132,7 +132,8 @@ function renderWaffleChart(container, datasets) {
     const tot = totalByKey.get(key) || 0;
     const civ = civiliansByKey.get(key) || 0;
     const pct = tot > 0 ? (civ / tot) * 100 : 0;
-    const filled = Math.round(pct);
+    // Clamp to 0-100 to avoid accidental overflow due to rounding
+    const filled = Math.min(100, Math.max(0, Math.round(pct)));
 
     const narrative =
       tot === 0
@@ -155,26 +156,29 @@ function renderWaffleChart(container, datasets) {
   function buildTooltip(d) {
     const country = countrySelect.property('value');
     const year = yearSelect.property('value');
-    const key = `${country}`;
+    const key = `${country}||${year}`;
     const tot = totalByKey.get(key) || 0;
     const civ = civiliansByKey.get(key) || 0;
-    const pct = tot > 0 ? (civ / tot) * 100 : 0;
-    const filled = Math.round(pct);
+    const civShare = tot > 0 ? (civ / tot) * 100 : 0;
+    const otherCount = tot - civ;
+    const otherShare = tot > 0 ? (otherCount / tot) * 100 : 0;
+    const filled = Math.min(100, Math.max(0, Math.round(civShare)));
 
     if (tot === 0) {
       return {
-        html: `<strong>${country} ${year}</strong><br>No events recorded`,
+        html: `<strong>${country}</strong><br>No events recorded`,
         color: '#c2c2c2'
       };
     }
 
     const isCivil = d.index < filled;
     const label = isCivil ? 'Violence against civilians' : 'Other political violence';
-    const count = isCivil ? civ : tot - civ;
+    const count = isCivil ? civ : otherCount;
     const color = isCivil ? getDatasetColor(DATASET_KEYS.TARGET_CIVIL_EVENT) : getDatasetColor(DATASET_KEYS.OTHER_POLITICAL_VIOLENCE);
+    const share = isCivil ? civShare : otherShare;
 
     return {
-      html: `<strong>${country}</strong><br>${label}: ${d3.format(',')(count)} events<br>Civilian share: ${pct.toFixed(1)}%`,
+      html: `<strong>${country}</strong><br>${label}: ${d3.format(',')(count)} (${share.toFixed(1)}%)<br>Total: ${d3.format(',')(tot)}`,
       color
     };
   }

@@ -276,7 +276,7 @@ function renderStacked100Chart(container, datasets = {}) {
                     `${d.key === 'civilians' ? 'Violence against civilians' : 'Other political violence'}: ${segmentCount} (${pct.toFixed(
                       1
                     )}%)<br>` +
-                    `Total political violence events: ${totalCount}`
+                    `Total: ${totalCount}`
                 );
 
               let x, y;
