@@ -12,12 +12,13 @@ async function init() {
   await loadComponent('intro-container', 'components/intro.html');
   await loadComponent('charts-container', 'components/charts.html');
   await loadComponent('footer-container', 'components/footer.html');
+  
   await loadComponent('grouped-bar-container', 'components/charts/grouped_bar.html');
   await loadComponent('stacked-100-container', 'components/charts/stacked_100.html');
   await loadComponent('heatmap-container', 'components/charts/heatmap.html');
   await loadComponent('waffle-container', 'components/charts/waffle.html');
   await loadComponent('circlepacking-container', 'components/charts/circlepacking.html');
-  await loadComponent('fatalities-shared-container', 'components/charts/fatalities_shared.html');
+  await loadComponent('bar-horizontal-container', 'components/charts/bar_horizontal.html');
 
   renderChart('grouped-bar-chart', renderGroupedBarChart, datasets);
   renderChart('stacked-100-chart', renderStacked100Chart, datasets);
@@ -25,7 +26,6 @@ async function init() {
   renderChart('bar-horizontal-chart', renderBarHorizontalChart, datasets);
   renderChart('waffle-chart', renderWaffleChart, datasets);
   renderChart('circlepacking-chart', renderCirclePacking, datasets);  
-  renderChart('circlepacking2-chart', renderCirclePacking2, datasets);
 
 
   setupMobileNavAutoClose();
