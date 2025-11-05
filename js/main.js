@@ -10,22 +10,29 @@ async function init() {
 
   await loadComponent('navbar-container', 'components/navbar.html');
   await loadComponent('intro-container', 'components/intro.html');
-  await loadComponent('charts-container', 'components/charts.html');
+  await loadComponent('chapter-1-container', 'components/chapter_1.html');
+  await loadComponent('chapter-2-container', 'components/chapter_2.html');
   await loadComponent('footer-container', 'components/footer.html');
-  
+
   await loadComponent('grouped-bar-container', 'components/charts/grouped_bar.html');
   await loadComponent('stacked-100-container', 'components/charts/stacked_100.html');
   await loadComponent('heatmap-container', 'components/charts/heatmap.html');
   await loadComponent('waffle-container', 'components/charts/waffle.html');
   await loadComponent('circlepacking-container', 'components/charts/circlepacking.html');
   await loadComponent('bar-horizontal-container', 'components/charts/bar_horizontal.html');
+  await loadComponent('histogram-container', 'components/charts/histogram.html');
+  await loadComponent('violin-plot-container', 'components/charts/violin_plot.html');
+  await loadComponent('boxplot-container', 'components/charts/box_plot.html');
 
   renderChart('grouped-bar-chart', renderGroupedBarChart, datasets);
   renderChart('stacked-100-chart', renderStacked100Chart, datasets);
   renderChart('heatmap-chart', renderHeatmapChart, datasets);
   renderChart('bar-horizontal-chart', renderBarHorizontalChart, datasets);
   renderChart('waffle-chart', renderWaffleChart, datasets);
-  renderChart('circlepacking-chart', renderCirclePacking, datasets);  
+  renderChart('circlepacking-chart', renderCirclePacking, datasets); 
+  renderChart('histogram-chart', renderHistogramChart, datasets);
+  renderChart('violin-chart', renderViolinPlot, datasets);
+  renderChart('box-plot-chart', renderBoxPlotChart, datasets);
 
 
   setupMobileNavAutoClose();
