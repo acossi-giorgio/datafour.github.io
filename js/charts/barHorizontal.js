@@ -1,6 +1,5 @@
 function renderBarHorizontalChart(container, datasets) {
   const root = d3.select(container);
-  // Support shared year select if present (#shared-year-select)
   let yearSelect = root.select('#bar-horizontal-year-select');
   const sharedSelect = d3.select('#shared-year-select');
   const useShared = !sharedSelect.empty();
@@ -9,16 +8,12 @@ function renderBarHorizontalChart(container, datasets) {
   }
   const svg = root.select('#bar-horizontal-svg');
 
-  // Ensure tooltip exists and has consistent styling (append to body for layering)
   function ensureTooltip() {
     let t = d3.select('#bar-horizontal-tooltip');
     if (t.empty()) {
       t = d3.select('body').append('div').attr('id', 'bar-horizontal-tooltip');
     } else {
-      // If tooltip lives inside the chart, keep it but ensure styles
-      // Optionally move to body for absolute positioning consistency
       if (t.node().parentNode !== document.body) {
-        // Clone & move to body to avoid clipping
         const node = t.remove().node();
         t = d3.select('body').append(() => node);
       }
@@ -50,7 +45,6 @@ function renderBarHorizontalChart(container, datasets) {
     .filter(d => countriesSet.has(d.country));
 
   const years = filterYearsRange([...new Set(fatalities.map(d => d.year))].sort((a, b) => a - b));
-  // Populate year select only if not already populated (shared scenario)
   if (yearSelect.attr('data-populated') !== '1') {
     yearSelect.selectAll('option').data(years).join('option').attr('value', d => d).text(d => d);
     yearSelect.property('value', years[years.length - 1]);
@@ -98,7 +92,6 @@ function renderBarHorizontalChart(container, datasets) {
                 .html(`<strong>${d.country}</strong><br>Fatalities: ${formatNum(d.fatalities)}`);
               const x = event.pageX + 14;
               const y = event.pageY + 16;
-              // Prevent overflow right/bottom
               const rect = tooltip.node().getBoundingClientRect();
               const vw = document.documentElement.clientWidth;
               const vh = document.documentElement.clientHeight;
@@ -157,7 +150,6 @@ function renderBarHorizontalChart(container, datasets) {
   }
 
   update(yearSelect.property('value'));
-  // Re-bind change (idempotent)
   yearSelect.on('change.barHorizontal', function () {
     update(this.value);
   });
