@@ -6,6 +6,7 @@ async function init() {
     targetingCiviliansEvents: await loadCSV('mea_number_of_events_targeting_civilians_by_country_year.csv'),
     politicalViolenceEvents: await loadCSV('mea_number_of_political_violence_events_by_country_year.csv'),
     civilianFatalities: await loadCSV('mea_number_of_reported_civilian_fatalities_by_country_year.csv'),
+    meaAggregatedData: await loadCSV('mea_aggregated_data.csv')
   }
 
   await loadComponent('navbar-container', 'components/navbar.html');
