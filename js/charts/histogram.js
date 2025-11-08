@@ -98,23 +98,6 @@ function renderHistogramChart(container, datasets) {
 	);
 	const subTypeToEventType = new Map(subTypeEventTotals);
 
-	function eventTypeToDatasetKey(eventType) {
-		switch ((eventType || '').toLowerCase()) {
-			case 'protests':
-				return DATASET_KEYS.DEMONSTRATIONS;
-			case 'violence against civilians':
-				return DATASET_KEYS.TARGET_CIVIL_EVENT;
-			case 'battles':
-				return DATASET_KEYS.POLITICAL_VIOLENCE;
-			case 'explosions/remote violence':
-			case 'riots':
-			case 'strategic developments':
-				return DATASET_KEYS.OTHER_POLITICAL_VIOLENCE;
-			default:
-				return DATASET_KEYS.POLITICAL_VIOLENCE;
-		}
-	}
-
 	function computeSeries(country, subType) {
 		// Replica logica script Python:
 		// - filtro substring case-insensitive su country e subType

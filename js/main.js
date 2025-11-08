@@ -35,7 +35,6 @@ async function init() {
   renderChart('violin-chart', renderViolinPlot, datasets);
   renderChart('box-plot-chart', renderBoxPlotChart, datasets);
 
-
   setupMobileNavAutoClose();
 }
 
