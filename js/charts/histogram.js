@@ -116,22 +116,33 @@ function renderHistogramChart(container, datasets) {
 	}
 
 	function computeSeries(country, subType) {
-		const filtered = data.filter(d => d.country === country && d.subType === subType);
-		const byYear = new Map();
-		filtered.forEach(d => {
-			byYear.set(d.year, (byYear.get(d.year) || 0) + d.events);
-		});
-		const yearsRange = d3.range(YEAR_MIN, YEAR_MAX + 1);
-		return yearsRange.map(y => ({ year: y, events: byYear.get(y) || 0 }));
+		// Replica logica script Python:
+		// - filtro substring case-insensitive su country e subType
+		// - anno >= 2014
+		// - solo anni presenti (niente anni con 0 artificiali)
+		const lcCountry = (country || '').toLowerCase();
+		const lcSub = (subType || '').toLowerCase();
+		const filtered = data.filter(d =>
+			 d.year >= 2014 &&
+			 d.country.toLowerCase().includes(lcCountry) &&
+			 d.subType.toLowerCase().includes(lcSub)
+		);
+		const byYear = d3.rollups(
+			filtered,
+			v => d3.sum(v, d => d.events),
+			d => d.year
+		).sort((a,b)=>a[0]-b[0]);
+		return byYear.map(([year, events]) => ({ year, events }));
 	}
 
 	function update() {
 		const country = countrySelect.property('value');
 		const subType = typeSelect.property('value');
 		const eventType = subTypeToEventType.get(subType) || '';
-		const colorKey = eventTypeToDatasetKey(eventType);
-		const barColor = getDatasetColor(colorKey);
-		titleEl.text(`${subType} events in ${country}`);
+		// Colore fisso per replica stile Matplotlib (steelblue)
+		const barColor = 'steelblue';
+		// Titolo coerente con script Python
+		titleEl.text(`Somma degli eventi di tipo '${subType}' in ${country} (dal 2014 in poi)`);
 		const series = computeSeries(country, subType);
 
 		xScale.domain(series.map(d => d.year));
@@ -148,35 +159,35 @@ function renderHistogramChart(container, datasets) {
 			.attr('height', 0)
 			.attr('fill', barColor)
 			.on('mousemove', (event, d) => {
-	// Trova di nuovo i dati di dettaglio per quell'anno
-	const detail = data.find(x =>
-		x.country === country &&
-		x.subType === subType &&
-		x.year === d.year
-	);
-
-	tooltip
-		.style('display', 'block')
-		.style('opacity', 1)
-		.html(`
-			<strong>Year:</strong> ${d.year}<br>
-			<strong>Event type:</strong> ${eventType || 'N/A'}<br>
-			<strong>Subtype:</strong> ${subType}<br>
-			<strong>Events:</strong> ${formatNum(d.events)}<br>
-			<strong>Fatalities:</strong> ${formatNum(detail?.fatalities || 0)}
-		`);
-
-	const x = event.pageX + 14;
-	const y = event.pageY + 16;
-	const rect = tooltip.node().getBoundingClientRect();
-	const vw = document.documentElement.clientWidth;
-	const vh = document.documentElement.clientHeight;
-	let adjX = x, adjY = y;
-	if (adjX + rect.width + 8 > window.scrollX + vw) adjX = vw - rect.width - 8;
-	if (adjY + rect.height + 8 > window.scrollY + vh) adjY = vh - rect.height - 8;
-	tooltip.style('left', adjX + 'px').style('top', adjY + 'px');
-})
-.on('mouseout', () => tooltip.style('opacity', 0).style('display', 'none'));
+				// Ricerca dettaglio con substring case-insensitive (replica Python)
+				const lcCountry = country.toLowerCase();
+				const lcSub = subType.toLowerCase();
+				const detail = data.find(x =>
+					 x.year === d.year &&
+					 x.country.toLowerCase().includes(lcCountry) &&
+					 x.subType.toLowerCase().includes(lcSub)
+				);
+				tooltip
+					.style('display', 'block')
+					.style('opacity', 1)
+					.html(`
+						<strong>Year:</strong> ${d.year}<br>
+						<strong>Event type:</strong> ${eventType || 'N/A'}<br>
+						<strong>Subtype:</strong> ${subType}<br>
+						<strong>Events:</strong> ${formatNum(d.events)}<br>
+						<strong>Fatalities:</strong> ${formatNum(detail?.fatalities || 0)}
+					`);
+				const x = event.pageX + 14;
+				const y = event.pageY + 16;
+				const rect = tooltip.node().getBoundingClientRect();
+				const vw = document.documentElement.clientWidth;
+				const vh = document.documentElement.clientHeight;
+				let adjX = x, adjY = y;
+				if (adjX + rect.width + 8 > window.scrollX + vw) adjX = vw - rect.width - 8;
+				if (adjY + rect.height + 8 > window.scrollY + vh) adjY = vh - rect.height - 8;
+				tooltip.style('left', adjX + 'px').style('top', adjY + 'px');
+			})
+			.on('mouseout', () => tooltip.style('opacity', 0).style('display', 'none'));
 
 		barsEnter
 			.transition()
