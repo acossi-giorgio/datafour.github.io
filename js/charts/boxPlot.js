@@ -3,7 +3,7 @@ function renderBoxPlotChart(container, datasets) {
   const svg = root.select('#box-plot-svg');
   let countrySelect = root.select('#boxplot-country-select');
 
-  // Se il select non esiste nell'HTML, lo creo (fallback)
+
   if (countrySelect.empty()) {
     countrySelect = root
       .append('select')
@@ -11,12 +11,10 @@ function renderBoxPlotChart(container, datasets) {
       .attr('class', 'form-select form-select-sm');
   }
 
-  // --- trova un titolo, anche se è nel container padre ---
   let headingSel = root.select('#boxplot-title');
   if (headingSel.empty()) {
     headingSel = root.select('h1, h2, h3, h4, h5, h6');
     if (headingSel.empty()) {
-      // prova anche nel genitore, nel caso il titolo sia fuori dal container
       const parent = root.node().parentNode;
       if (parent) headingSel = d3.select(parent).select('h1, h2, h3, h4, h5, h6');
     }
@@ -32,10 +30,9 @@ function renderBoxPlotChart(container, datasets) {
       .classed('mt-2 ms-auto me-auto', true)
       .style('display', 'block')
       .style('width', 'auto')
-      .style('margin-bottom', '1.5rem'); // un po’ di spazio prima del grafico
+      .style('margin-bottom', '1.5rem'); 
   }
 
-  // Tooltip stile barHorizontal / histogram
   function ensureTooltip() {
     let t = d3.select('#boxplot-tooltip');
     if (t.empty()) {
@@ -53,7 +50,6 @@ function renderBoxPlotChart(container, datasets) {
   }
   const tooltip = ensureTooltip();
 
-  // Layout coerente con gli altri grafici
   const margin = { top: 30, right: 40, bottom: 30, left: 90 };
   const fullWidth = 800;
   const fullHeight = 500;
@@ -74,18 +70,15 @@ function renderBoxPlotChart(container, datasets) {
     .attr('class', 'chart-root')
     .attr('transform', `translate(${margin.left},${margin.top})`);
 
-  // Normalizzazione dati
   const normalizeEvents = d => ({
     country: (d.COUNTRY || d.Country || d.country || '').trim(),
     year: +(d.YEAR || d.Year || d.year),
-    // file "number_of_..._events..." → colonna EVENTS
     events: +(d.EVENTS ?? d.Events ?? d.events ?? 0)
   });
 
   const normalizeFatalities = d => ({
     country: (d.COUNTRY || d.Country || d.country || '').trim(),
     year: +(d.YEAR || d.Year || d.year),
-    // file "number_of_reported_civilian_fatalities..." → colonna FATALITIES
     events: +(d.FATALITIES ?? d.Fatalities ?? d.fatalities ?? 0)
   });
 
@@ -110,7 +103,6 @@ function renderBoxPlotChart(container, datasets) {
     .filter(d => d && d !== '')
     .sort((a, b) => a.localeCompare(b));
 
-  // Popolo il select una sola volta
   if (countrySelect.attr('data-populated') !== '1') {
     countrySelect
       .selectAll('option')
@@ -126,7 +118,6 @@ function renderBoxPlotChart(container, datasets) {
     countrySelect.attr('data-populated', '1');
   }
 
-  // Funzioni utili
   function valuesForCountry(dataArr, country) {
     return dataArr
       .filter(d => d.country === country)
@@ -152,7 +143,6 @@ function renderBoxPlotChart(container, datasets) {
     return { q1, median, q3, whiskerLow, whiskerHigh, min, max, outliers };
   }
 
-  // Scale & assi
   const xScale = d3
     .scaleBand()
     .range([0, width])
@@ -164,7 +154,6 @@ function renderBoxPlotChart(container, datasets) {
   const xAxisG = g.append('g').attr('transform', `translate(0,${plotBottom})`);
   const yAxisG = g.append('g');
 
-  // Tooltip helpers
   function showTooltip(event, html) {
     tooltip
       .style('display', 'block')
@@ -287,7 +276,6 @@ function renderBoxPlotChart(container, datasets) {
     const whiskerWidth = boxBodyWidth * 0.6;
     const jitterWidth = boxBodyWidth * 0.35;
 
-    // Whisker
     boxGroups
       .append('line')
       .attr('x1', boxCenter)
@@ -312,7 +300,6 @@ function renderBoxPlotChart(container, datasets) {
       .attr('y2', d => yScale(d.stats.whiskerHigh))
       .attr('stroke', '#555');
 
-    // Box Q1–Q3
     boxGroups
       .append('rect')
       .attr('x', boxCenter - boxBodyWidth / 2)
@@ -358,7 +345,9 @@ function renderBoxPlotChart(container, datasets) {
         .enter()
         .append('circle')
         .attr('class', 'outlier')
-        .attr('cx', () => boxCenter + (Math.random() - 0.5) * jitterWidth)
+        .attr('cx', boxCenter)
+        // per una migliore visualizzazione, aggiungo un po’ di jitter orizzontale per non avere gli outlier tutti in colonna
+        //.attr('cx', () => boxCenter + (Math.random() - 0.5) * jitterWidth)
         .attr('cy', v => yScale(v))
         .attr('r', 3)
         .attr('fill', d.color)
