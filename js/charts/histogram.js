@@ -5,7 +5,7 @@ function renderHistogramChart(container, datasets) {
 	let typeSelect = root.select('#histogram-type-select');
 	const titleEl = root.select('#histogram-title');
 
-	// === Tooltip come in renderBarHorizontalChart ===
+	// === Tooltip ===
 	function ensureTooltip() {
 		let t = d3.select('#histogram-tooltip');
 		if (t.empty()) {
@@ -37,23 +37,29 @@ function renderHistogramChart(container, datasets) {
 		.attr('class', 'chart-root')
 		.attr('transform', `translate(${margin.left},${margin.top})`);
 
+	// === Pulizia e parsing dataset ===
 	const raw = datasets.meaAggregatedData || [];
+
+	// Usa lo stesso dataset anche come "countries" se non è fornito
 	const countriesSet = new Set(
-		datasets.countries.map(d => (d.Country || d.country || '').trim())
+		(datasets.countries || raw).map(d => (d.Country || d.COUNTRY || '').trim())
 	);
+
+	// Pulizia e normalizzazione come in Python
 	const data = raw
 		.map(d => ({
-			country: (d.COUNTRY || d.Country || '').trim(),
-			eventType: (d.EVENT_TYPE || d.EventType || '').trim(),
-			subType: (d.SUB_EVENT_TYPE || d.SubEventType || '').trim(),
+			country: ((d.COUNTRY || d.Country || '').trim()),
+			eventType: ((d.EVENT_TYPE || d.EventType || '').trim()),
+			subType: ((d.SUB_EVENT_TYPE || d.SubEventType || '').trim()),
 			events: +((d.EVENTS != null && d.EVENTS !== '') ? d.EVENTS : 0),
 			fatalities: +((d.FATALITIES != null && d.FATALITIES !== '') ? d.FATALITIES : 0),
-			year: +(d.YEAR || d.Year || 0)
+			year: +((d.YEAR || d.Year || '').toString().trim() || 0)
 		}))
-		.filter(d => countriesSet.has(d.country) && isYearInRange(d.year));
+		.filter(d => d.year >= 2014 && d.year <= 2024 && countriesSet.has(d.country));
 
-	const countries = Array.from(new Set(data.map(d => d.country))).sort((a,b)=>a.localeCompare(b));
-	const subTypes = Array.from(new Set(data.map(d => d.subType))).sort((a,b)=>a.localeCompare(b));
+	// === Popola select dinamiche ===
+	const countries = Array.from(new Set(data.map(d => d.country))).sort((a, b) => a.localeCompare(b));
+	const subTypes = Array.from(new Set(data.map(d => d.subType))).sort((a, b) => a.localeCompare(b));
 
 	if (countrySelect.attr('data-populated') !== '1') {
 		countrySelect
@@ -80,13 +86,14 @@ function renderHistogramChart(container, datasets) {
 		typeSelect.attr('data-populated', '1');
 	}
 
+	// === Scale e assi ===
 	const xScale = d3.scaleBand().range([0, width]).padding(0.25);
 	const yScale = d3.scaleLinear().range([height, 0]);
 	const xAxisG = g.append('g').attr('transform', `translate(0,${height})`);
 	const yAxisG = g.append('g');
 	const formatNum = d3.format(',');
 
-	// Mappa SubType -> EventType dominante
+	// === Calcolo EventType per SubType ===
 	const subTypeEventTotals = d3.rollups(
 		data,
 		v =>
@@ -98,42 +105,50 @@ function renderHistogramChart(container, datasets) {
 	);
 	const subTypeToEventType = new Map(subTypeEventTotals);
 
-	function computeSeries(country, subType) {
-		// Replica logica script Python:
-		// - filtro substring case-insensitive su country e subType
-		// - anno >= 2014
-		// - solo anni presenti (niente anni con 0 artificiali)
-		const lcCountry = (country || '').toLowerCase();
-		const lcSub = (subType || '').toLowerCase();
-		const filtered = data.filter(d =>
-			 d.year >= 2014 &&
-			 d.country.toLowerCase().includes(lcCountry) &&
-			 d.subType.toLowerCase().includes(lcSub)
-		);
-		const byYear = d3.rollups(
-			filtered,
-			v => d3.sum(v, d => d.events),
-			d => d.year
-		).sort((a,b)=>a[0]-b[0]);
-		return byYear.map(([year, events]) => ({ year, events }));
+	function eventTypeToDatasetKey(eventType) {
+		switch ((eventType || '').toLowerCase()) {
+			case 'protests': return DATASET_KEYS.DEMONSTRATIONS;
+			case 'violence against civilians': return DATASET_KEYS.TARGET_CIVIL_EVENT;
+			case 'battles': return DATASET_KEYS.POLITICAL_VIOLENCE;
+			case 'explosions/remote violence':
+			case 'riots':
+			case 'strategic developments':
+				return DATASET_KEYS.OTHER_POLITICAL_VIOLENCE;
+			default:
+				return DATASET_KEYS.POLITICAL_VIOLENCE;
+		}
 	}
 
+	// === Calcolo serie annuale (come in Python) ===
+	function computeSeries(country, subType) {
+		const filtered = data.filter(d =>
+			d.country.toLowerCase().includes(country.toLowerCase()) &&
+			d.subType.toLowerCase().includes(subType.toLowerCase())
+		);
+		const byYear = new Map();
+		filtered.forEach(d => {
+			byYear.set(d.year, (byYear.get(d.year) || 0) + d.events);
+		});
+		return d3.range(2014, 2025).map(y => ({ year: y, events: byYear.get(y) || 0 }));
+	}
+
+	// === Funzione di aggiornamento grafico ===
 	function update() {
 		const country = countrySelect.property('value');
 		const subType = typeSelect.property('value');
 		const eventType = subTypeToEventType.get(subType) || '';
-		// Colore fisso per replica stile Matplotlib (steelblue)
-		const barColor = 'steelblue';
-		// Titolo coerente con script Python
-		titleEl.text(`Somma degli eventi di tipo '${subType}' in ${country} (dal 2014 in poi)`);
+		const colorKey = eventTypeToDatasetKey(eventType);
+		const barColor = getDatasetColor(colorKey);
+		titleEl.text(`${subType} events in ${country}`);
 		const series = computeSeries(country, subType);
 
 		xScale.domain(series.map(d => d.year));
 		yScale.domain([0, d3.max(series, d => d.events) || 1]).nice();
 
 		const bars = g.selectAll('.hist-bar').data(series, d => d.year);
-		const barsEnter = bars
-			.enter()
+
+		// Enter
+		const barsEnter = bars.enter()
 			.append('rect')
 			.attr('class', 'hist-bar')
 			.attr('x', d => xScale(d.year))
@@ -142,13 +157,10 @@ function renderHistogramChart(container, datasets) {
 			.attr('height', 0)
 			.attr('fill', barColor)
 			.on('mousemove', (event, d) => {
-				// Ricerca dettaglio con substring case-insensitive (replica Python)
-				const lcCountry = country.toLowerCase();
-				const lcSub = subType.toLowerCase();
 				const detail = data.find(x =>
-					 x.year === d.year &&
-					 x.country.toLowerCase().includes(lcCountry) &&
-					 x.subType.toLowerCase().includes(lcSub)
+					x.country.toLowerCase().includes(country.toLowerCase()) &&
+					x.subType.toLowerCase().includes(subType.toLowerCase()) &&
+					x.year === d.year
 				);
 				tooltip
 					.style('display', 'block')
@@ -172,14 +184,14 @@ function renderHistogramChart(container, datasets) {
 			})
 			.on('mouseout', () => tooltip.style('opacity', 0).style('display', 'none'));
 
-		barsEnter
-			.transition()
+		// Enter transition
+		barsEnter.transition()
 			.duration(800)
 			.attr('y', d => yScale(d.events))
 			.attr('height', d => height - yScale(d.events));
 
-		bars
-			.transition()
+		// Update transition
+		bars.transition()
 			.duration(600)
 			.attr('x', d => xScale(d.year))
 			.attr('width', xScale.bandwidth())
@@ -187,6 +199,7 @@ function renderHistogramChart(container, datasets) {
 			.attr('height', d => height - yScale(d.events))
 			.attr('fill', barColor);
 
+		// Exit transition
 		bars.exit()
 			.transition()
 			.duration(400)
@@ -204,4 +217,3 @@ function renderHistogramChart(container, datasets) {
 	countrySelect.on('change.histogram', update);
 	typeSelect.on('change.histogram', update);
 }
-
