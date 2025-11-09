@@ -137,8 +137,8 @@ function renderHistogramChart(container, datasets) {
 		const country = countrySelect.property('value');
 		const subType = typeSelect.property('value');
 		const eventType = subTypeToEventType.get(subType) || '';
-		const colorKey = eventTypeToDatasetKey(eventType);
-		const barColor = getDatasetColor(colorKey);
+		// Usa un colore fisso per tutte le barre dell'istogramma
+		const barColor = '#4e79a7';
 		titleEl.text(`${subType} events in ${country}`);
 		const series = computeSeries(country, subType);
 
