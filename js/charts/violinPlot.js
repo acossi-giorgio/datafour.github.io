@@ -1,7 +1,8 @@
 function renderViolinPlot(container, datasets) {
-    const countrySelect = document.getElementById('violin-country-select');
     const subTypeSelect = document.getElementById('violin-subtype-select');
     const chartHolder = document.getElementById('violin-chart-inner');
+    
+    const selectedCountry = 'Palestine';
 
     const raw = (datasets.meaAggregatedData || []).map(d => ({
         country: (d.COUNTRY || d.Country || '').trim(),
@@ -10,17 +11,7 @@ function renderViolinPlot(container, datasets) {
         year: +(d.YEAR || d.Year || 0)
     })).filter(d => d.year && !isNaN(d.events));
 
-    const countries = Array.from(new Set(raw.map(d => d.country))).sort((a, b) => a.localeCompare(b));
-    countries.forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c;
-        opt.textContent = c;
-        countrySelect.appendChild(opt);
-    });
-
-    if (countries.includes('Palestine')) countrySelect.value = 'Palestine';
-
-    function updateSubTypeOptions(selectedCountry) {
+    function updateSubTypeOptions() {
         if (!subTypeSelect) return;
         const prevVal = subTypeSelect.value;
         subTypeSelect.innerHTML = '';
@@ -40,8 +31,8 @@ function renderViolinPlot(container, datasets) {
         }
     }
 
-    if (countrySelect && subTypeSelect) {
-        updateSubTypeOptions(countrySelect.value || raw[0]?.country);
+    if (subTypeSelect) {
+        updateSubTypeOptions();
     }
 
     let tooltip = d3.select('#violin-tooltip');
@@ -176,7 +167,7 @@ function renderViolinPlot(container, datasets) {
                     .curve(d3.curveCatmullRom)
                 )
                 .style('fill', '#69b3a2')
-                .style('opacity', 0.85)
+                .style('opacity', 0.75)
                 .style('stroke', '#333');
         });
 
@@ -206,17 +197,11 @@ function renderViolinPlot(container, datasets) {
         svg.append('text').attr('transform', 'rotate(-90)').attr('x', -height / 2).attr('y', -45).attr('text-anchor', 'middle').style('font-size', '12px').style('font-family', 'Roboto Slab, serif').text(subType);
     }
 
-    if (countrySelect) {
-        countrySelect.addEventListener('change', () => {
-            updateSubTypeOptions(countrySelect.value);
-            drawViolin(countrySelect.value, subTypeSelect?.value);
-        });
-    }
     if (subTypeSelect) {
         subTypeSelect.addEventListener('change', () => {
-            drawViolin(countrySelect?.value, subTypeSelect.value);
+            drawViolin(selectedCountry, subTypeSelect.value);
         });
     }
 
-    drawViolin(countrySelect?.value || raw[0]?.country, subTypeSelect?.value || 'Peaceful protest');
+    drawViolin(selectedCountry, subTypeSelect?.value || 'Peaceful protest');
 }
