@@ -12,6 +12,7 @@ function renderRidgeLinePlot(container, datasets) {
             .style('display', 'none')
             .style('opacity', 0)
     };
+    
 
     const cleanData = (datasets.meaAggregatedData || [])
         .map(d => ({
