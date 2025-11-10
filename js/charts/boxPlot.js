@@ -1,54 +1,9 @@
 function renderBoxPlotChart(container, datasets) {
+  const SELECT_ID = 'boxplot-country-select';
+  const TOOLTIP_ID = 'boxplot-tooltip';
+
   const root = d3.select(container);
   const svg = root.select('#box-plot-svg');
-  let countrySelect = root.select('#boxplot-country-select');
-
-
-  if (countrySelect.empty()) {
-    countrySelect = root
-      .append('select')
-      .attr('id', 'boxplot-country-select')
-      .attr('class', 'form-select form-select-sm');
-  }
-
-  let headingSel = root.select('#boxplot-title');
-  if (headingSel.empty()) {
-    headingSel = root.select('h1, h2, h3, h4, h5, h6');
-    if (headingSel.empty()) {
-      const parent = root.node().parentNode;
-      if (parent) headingSel = d3.select(parent).select('h1, h2, h3, h4, h5, h6');
-    }
-  }
-
-  const headingNode = headingSel.node();
-  const selectNode = countrySelect.node();
-
-  if (headingNode && selectNode && headingNode.nextSibling !== selectNode) {
-    headingNode.parentNode.insertBefore(selectNode, headingNode.nextSibling);
-
-    d3.select(selectNode)
-      .classed('mt-2 ms-auto me-auto', true)
-      .style('display', 'block')
-      .style('width', 'auto')
-      .style('margin-bottom', '1.5rem'); 
-  }
-
-  function ensureTooltip() {
-    let t = d3.select('#boxplot-tooltip');
-    if (t.empty()) {
-      t = d3.select('body').append('div').attr('id', 'boxplot-tooltip');
-    } else if (t.node().parentNode !== document.body) {
-      const node = t.remove().node();
-      t = d3.select('body').append(() => node);
-    }
-    return t
-      .classed('chart-tooltip', true)
-      .style('position', 'absolute')
-      .style('pointer-events', 'none')
-      .style('display', 'none')
-      .style('opacity', 0);
-  }
-  const tooltip = ensureTooltip();
 
   const margin = { top: 30, right: 40, bottom: 30, left: 90 };
   const fullWidth = 800;
@@ -65,10 +20,100 @@ function renderBoxPlotChart(container, datasets) {
     .style('height', 'auto');
 
   svg.selectAll('g.chart-root').remove();
+
   const g = svg
     .append('g')
     .attr('class', 'chart-root')
     .attr('transform', `translate(${margin.left},${margin.top})`);
+
+  // --- UI helpers ---------------------------------------------------------
+
+  function getOrCreateCountrySelect() {
+    let select = root.select(`#${SELECT_ID}`);
+
+    if (select.empty()) {
+      select = root
+        .append('select')
+        .attr('id', SELECT_ID)
+        .attr('class', 'form-select form-select-sm');
+    }
+
+    // Try to place the select right below any heading in or near the container
+    let headingSel = root.select('#boxplot-title');
+    if (headingSel.empty()) {
+      headingSel = root.select('h1, h2, h3, h4, h5, h6');
+      if (headingSel.empty()) {
+        const parent = root.node().parentNode;
+        if (parent) {
+          headingSel = d3.select(parent).select('h1, h2, h3, h4, h5, h6');
+        }
+      }
+    }
+
+    const headingNode = headingSel.node();
+    const selectNode = select.node();
+
+    if (headingNode && selectNode && headingNode.nextSibling !== selectNode) {
+      headingNode.parentNode.insertBefore(selectNode, headingNode.nextSibling);
+
+      d3.select(selectNode)
+        .classed('mt-2 ms-auto me-auto', true)
+        .style('display', 'block')
+        .style('width', 'auto')
+        .style('margin-bottom', '1.5rem');
+    }
+
+    return select;
+  }
+
+  function getOrCreateTooltip() {
+    let t = d3.select(`#${TOOLTIP_ID}`);
+    if (t.empty()) {
+      t = d3.select('body').append('div').attr('id', TOOLTIP_ID);
+    } else if (t.node().parentNode !== document.body) {
+      const node = t.remove().node();
+      t = d3.select('body').append(() => node);
+    }
+
+    return t
+      .classed('chart-tooltip', true)
+      .style('position', 'absolute')
+      .style('pointer-events', 'none')
+      .style('display', 'none')
+      .style('opacity', 0);
+  }
+
+  const countrySelect = getOrCreateCountrySelect();
+  const tooltip = getOrCreateTooltip();
+  const formatNumber = d3.format(',');
+
+  function showTooltip(event, html) {
+    tooltip
+      .style('display', 'block')
+      .style('opacity', 1)
+      .html(html);
+
+    const { clientWidth: vw, clientHeight: vh } = document.documentElement;
+    const rect = tooltip.node().getBoundingClientRect();
+
+    let x = event.pageX + 14;
+    let y = event.pageY + 16;
+
+    if (x + rect.width + 8 > window.scrollX + vw) {
+      x = vw - rect.width - 8;
+    }
+    if (y + rect.height + 8 > window.scrollY + vh) {
+      y = vh - rect.height - 8;
+    }
+
+    tooltip.style('left', `${x}px`).style('top', `${y}px`);
+  }
+
+  function hideTooltip() {
+    tooltip.style('opacity', 0).style('display', 'none');
+  }
+
+  // --- Data normalization --------------------------------------------------
 
   const normalizeEvents = d => ({
     country: (d.COUNTRY || d.Country || d.country || '').trim(),
@@ -98,9 +143,15 @@ function renderBoxPlotChart(container, datasets) {
     .map(normalizeFatalities)
     .filter(d => isYearInRange(d.year));
 
-  const allData = demoData.concat(targetCivData, polViolenceData, civFatalData);
+  const allData = [
+    ...demoData,
+    ...targetCivData,
+    ...polViolenceData,
+    ...civFatalData
+  ];
+
   const countries = Array.from(new Set(allData.map(d => d.country)))
-    .filter(d => d && d !== '')
+    .filter(Boolean)
     .sort((a, b) => a.localeCompare(b));
 
   if (countrySelect.attr('data-populated') !== '1') {
@@ -133,15 +184,28 @@ function renderBoxPlotChart(container, datasets) {
     const median = d3.quantileSorted(sorted, 0.5);
     const q3 = d3.quantileSorted(sorted, 0.75);
     const iqr = q3 - q1;
+
     const min = sorted[0];
     const max = sorted[sorted.length - 1];
     const lowerFence = q1 - 1.5 * iqr;
     const upperFence = q3 + 1.5 * iqr;
+
     const whiskerLow = sorted.find(v => v >= lowerFence) ?? min;
-    const whiskerHigh = [...sorted].reverse().find(v => v <= upperFence) ?? max;
+
+    let whiskerHigh = max;
+    for (let i = sorted.length - 1; i >= 0; i--) {
+      if (sorted[i] <= upperFence) {
+        whiskerHigh = sorted[i];
+        break;
+      }
+    }
+
     const outliers = sorted.filter(v => v < whiskerLow || v > whiskerHigh);
+
     return { q1, median, q3, whiskerLow, whiskerHigh, min, max, outliers };
   }
+
+  // --- Scales & axes -------------------------------------------------------
 
   const xScale = d3
     .scaleBand()
@@ -154,30 +218,22 @@ function renderBoxPlotChart(container, datasets) {
   const xAxisG = g.append('g').attr('transform', `translate(0,${plotBottom})`);
   const yAxisG = g.append('g');
 
-  function showTooltip(event, html) {
-    tooltip
-      .style('display', 'block')
-      .style('opacity', 1)
-      .html(html);
+  const yAxisTitle = g
+    .append('text')
+    .attr('class', 'y-axis-title')
+    .attr('x', -plotBottom / 2)
+    .attr('y', -60)
+    .attr('transform', 'rotate(-90)')
+    .attr('text-anchor', 'middle')
+    .style('font-family', 'Roboto Slab, serif')
+    .style('font-size', '13px')
+    .text('Number of events per year');
 
-    let x = event.pageX + 14;
-    let y = event.pageY + 16;
-    const rect = tooltip.node().getBoundingClientRect();
-    const vw = document.documentElement.clientWidth;
-    const vh = document.documentElement.clientHeight;
-    let adjX = x;
-    let adjY = y;
-    if (adjX + rect.width + 8 > window.scrollX + vw) adjX = vw - rect.width - 8;
-    if (adjY + rect.height + 8 > window.scrollY + vh) adjY = vh - rect.height - 8;
-    tooltip.style('left', adjX + 'px').style('top', adjY + 'px');
-  }
-
-  function hideTooltip() {
-    tooltip.style('opacity', 0).style('display', 'none');
-  }
+  // --- Rendering -----------------------------------------------------------
 
   function update() {
-    const selectedCountry = countrySelect.property('value') || countries[0];
+    const selectedCountry =
+      countrySelect.property('value') || countries[0] || null;
 
     g.selectAll('.no-data-text').remove();
     g.selectAll('.box-group').remove();
@@ -233,9 +289,12 @@ function renderBoxPlotChart(container, datasets) {
       return;
     }
 
-    const allValues = series.flatMap(b =>
-      (b.stats.outliers || []).concat([b.stats.whiskerLow, b.stats.whiskerHigh])
-    );
+    const allValues = series.flatMap(b => [
+      ...(b.stats.outliers || []),
+      b.stats.whiskerLow,
+      b.stats.whiskerHigh
+    ]);
+
     const yMax = d3.max(allValues) || 1;
     const yPadding = yMax * 0.05;
 
@@ -274,8 +333,8 @@ function renderBoxPlotChart(container, datasets) {
     const boxBodyWidth = boxWidth * 0.55;
     const boxCenter = boxWidth / 2;
     const whiskerWidth = boxBodyWidth * 0.6;
-    const jitterWidth = boxBodyWidth * 0.35;
 
+    // whisker lines
     boxGroups
       .append('line')
       .attr('x1', boxCenter)
@@ -300,32 +359,34 @@ function renderBoxPlotChart(container, datasets) {
       .attr('y2', d => yScale(d.stats.whiskerHigh))
       .attr('stroke', '#555');
 
+    // box body
     boxGroups
       .append('rect')
       .attr('x', boxCenter - boxBodyWidth / 2)
       .attr('width', boxBodyWidth)
       .attr('y', d => yScale(d.stats.q3))
-      .attr('height', d => Math.max(1, yScale(d.stats.q1) - yScale(d.stats.q3)))
+      .attr('height', d =>
+        Math.max(1, yScale(d.stats.q1) - yScale(d.stats.q3))
+      )
       .attr('fill', d => d.color)
       .attr('fill-opacity', 0.75)
       .attr('stroke', '#333')
       .attr('tabindex', 0)
       .on('mousemove', (event, d) => {
         const s = d.stats;
-        const fmt = d3.format(',');
         showTooltip(
           event,
           `<strong>${d.label}</strong><br>
-           Q1: ${fmt(s.q1)}<br>
-           Median: ${fmt(s.median)}<br>
-           Q3: ${fmt(s.q3)}<br>
-           Whisker low: ${fmt(s.whiskerLow)}<br>
-           Whisker high: ${fmt(s.whiskerHigh)}`
+           Q1: ${formatNumber(s.q1)}<br>
+           Median: ${formatNumber(s.median)}<br>
+           Q3: ${formatNumber(s.q3)}<br>
+           Whisker low: ${formatNumber(s.whiskerLow)}<br>
+           Whisker high: ${formatNumber(s.whiskerHigh)}`
         );
       })
       .on('mouseout blur', hideTooltip);
 
-    // Mediana
+    // median line
     boxGroups
       .append('line')
       .attr('x1', boxCenter - boxBodyWidth / 2)
@@ -335,10 +396,11 @@ function renderBoxPlotChart(container, datasets) {
       .attr('stroke', '#000')
       .attr('stroke-width', 1.5);
 
-    // Outliers
+    // outliers
     boxGroups.each(function (d) {
       const group = d3.select(this);
       const outliers = d.stats.outliers || [];
+
       group
         .selectAll('circle.outlier')
         .data(outliers)
@@ -346,34 +408,21 @@ function renderBoxPlotChart(container, datasets) {
         .append('circle')
         .attr('class', 'outlier')
         .attr('cx', boxCenter)
-        // per una migliore visualizzazione, aggiungo un po’ di jitter orizzontale per non avere gli outlier tutti in colonna
-        //.attr('cx', () => boxCenter + (Math.random() - 0.5) * jitterWidth)
         .attr('cy', v => yScale(v))
         .attr('r', 3)
         .attr('fill', d.color)
         .attr('stroke', '#333')
         .on('mousemove', (event, v) => {
-          const fmt = d3.format(',');
           showTooltip(
             event,
-            `<strong>${d.label}</strong><br>Outlier: ${fmt(v)}`
+            `<strong>${d.label}</strong><br>Outlier: ${formatNumber(v)}`
           );
         })
         .on('mouseout blur', hideTooltip);
     });
 
-    // Titolo asse Y
-    g.selectAll('.y-axis-title').remove();
-    g
-      .append('text')
-      .attr('class', 'y-axis-title')
-      .attr('x', -plotBottom / 2)
-      .attr('y', -60)
-      .attr('transform', 'rotate(-90)')
-      .attr('text-anchor', 'middle')
-      .style('font-family', 'Roboto Slab, serif')
-      .style('font-size', '13px')
-      .text('Number of events per year');
+    // y-axis title is static; keep text in case you want to localize later
+    yAxisTitle.text('Number of events per year');
   }
 
   update();
