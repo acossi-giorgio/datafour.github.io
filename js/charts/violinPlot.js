@@ -1,8 +1,7 @@
 function renderViolinPlot(container, datasets) {
+    const countrySelect = document.getElementById('violin-country-select');
     const subTypeSelect = document.getElementById('violin-subtype-select');
     const chartHolder = document.getElementById('violin-chart-inner');
-    
-    const selectedCountry = 'Palestine';
 
     const raw = (datasets.meaAggregatedData || []).map(d => ({
         country: (d.COUNTRY || d.Country || '').trim(),
@@ -10,6 +9,26 @@ function renderViolinPlot(container, datasets) {
         events: +((d.EVENTS != null && d.EVENTS !== '') ? d.EVENTS : 0),
         year: +(d.YEAR || d.Year || 0)
     })).filter(d => d.year && !isNaN(d.events));
+
+    function updateCountryOptions() {
+        if (!countrySelect) return;
+        const prevVal = countrySelect.value;
+        countrySelect.innerHTML = '';
+
+        const allowedCountries = ['Palestine', 'Syria'];
+        allowedCountries.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c;
+            opt.textContent = c;
+            countrySelect.appendChild(opt);
+        });
+
+        if (prevVal && allowedCountries.includes(prevVal)) {
+            countrySelect.value = prevVal;
+        } else {
+            countrySelect.value = 'Palestine';
+        }
+    }
 
     function updateSubTypeOptions() {
         if (!subTypeSelect) return;
@@ -31,6 +50,9 @@ function renderViolinPlot(container, datasets) {
         }
     }
 
+    if (countrySelect) {
+        updateCountryOptions();
+    }
     if (subTypeSelect) {
         updateSubTypeOptions();
     }
@@ -166,9 +188,7 @@ function renderViolinPlot(container, datasets) {
                     .y(b => yScale(b.x0))
                     .curve(d3.curveCatmullRom)
                 )
-                .style('fill', '#69b3a2')
-                .style('opacity', 0.75)
-                .style('stroke', '#333');
+                .style('fill', '#2a7700ff')
         });
 
         function updateTooltipPos(event) {
@@ -187,21 +207,24 @@ function renderViolinPlot(container, datasets) {
         groups.on('mouseover', function(event, d) {
             const s = statsMap.get(d.key);
             tooltip.style('display', 'block').style('opacity', 1)
-                .html(`<div style="text-align: center;"><strong>${d.key}</strong></div>Samples: ${s.count}<br/>Mean: ${s.mean}<br/>Median: ${s.median}<br/>Min: ${s.min}<br/>Max: ${s.max}`);
+                .html(`<div style="text-align: center;"><strong>${d.key}</strong></div>Samples: ${s.count}<br/>Median: ${s.median}<br/>Min: ${s.min}<br/>Max: ${s.max}`);
             updateTooltipPos(event);
         })
         .on('mousemove', updateTooltipPos)
         .on('mouseleave', () => tooltip.style('opacity', 0).style('display', 'none'));
-
-        svg.append('text').attr('x', width / 2).attr('y', height + 32).attr('text-anchor', 'middle').style('font-size', '12px').style('font-family', 'Roboto Slab, serif').text('Year');
-        svg.append('text').attr('transform', 'rotate(-90)').attr('x', -height / 2).attr('y', -45).attr('text-anchor', 'middle').style('font-size', '12px').style('font-family', 'Roboto Slab, serif').text(subType);
+        svg.append('text').attr('transform', 'rotate(-90)').attr('x', -height / 2).attr('y', -45).attr('text-anchor', 'middle').style('font-size', '12px').style('font-family', 'Roboto Slab, serif').text(`Number of ${subType} per week`);
     }
 
+    if (countrySelect) {
+        countrySelect.addEventListener('change', () => {
+            drawViolin(countrySelect.value, subTypeSelect.value);
+        });
+    }
     if (subTypeSelect) {
         subTypeSelect.addEventListener('change', () => {
-            drawViolin(selectedCountry, subTypeSelect.value);
+            drawViolin(countrySelect.value, subTypeSelect.value);
         });
     }
 
-    drawViolin(selectedCountry, subTypeSelect?.value || 'Peaceful protest');
+    drawViolin(countrySelect?.value || 'Palestine', subTypeSelect?.value || 'Peaceful protest');
 }

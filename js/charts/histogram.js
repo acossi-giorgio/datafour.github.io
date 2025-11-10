@@ -52,14 +52,15 @@ function renderHistogramChart(container, datasets) {
 			eventType: ((d.EVENT_TYPE || d.EventType || '').trim()),
 			subType: ((d.SUB_EVENT_TYPE || d.SubEventType || '').trim()),
 			events: +((d.EVENTS != null && d.EVENTS !== '') ? d.EVENTS : 0),
-			fatalities: +((d.FATALITIES != null && d.FATALITIES !== '') ? d.FATALITIES : 0),
 			year: +((d.YEAR || d.Year || '').toString().trim() || 0)
 		}))
 		.filter(d => d.year >= 2014 && d.year <= 2024 && countriesSet.has(d.country));
 
 	// === Popola select dinamiche ===
-	const countries = Array.from(new Set(data.map(d => d.country))).sort((a, b) => a.localeCompare(b));
-	const subTypes = Array.from(new Set(data.map(d => d.subType))).sort((a, b) => a.localeCompare(b));
+	const allCountries = Array.from(new Set(data.map(d => d.country)));
+	const countries = allCountries.filter(c => c === 'Palestine' || c === 'Syria').sort((a, b) => a.localeCompare(b));
+	const allSubTypes = Array.from(new Set(data.map(d => d.subType)));
+	const subTypes = allSubTypes.filter(s => s === 'Abduction/forced disappearance' || s === 'Attack').sort((a, b) => a.localeCompare(b));
 
 	if (countrySelect.attr('data-populated') !== '1') {
 		countrySelect
@@ -91,6 +92,16 @@ function renderHistogramChart(container, datasets) {
 	const yScale = d3.scaleLinear().range([height, 0]);
 	const xAxisG = g.append('g').attr('transform', `translate(0,${height})`);
 	const yAxisG = g.append('g');
+	
+	// Y-axis label (will be updated dynamically)
+	const yAxisLabel = g.append('text')
+		.attr('class', 'y-axis-label')
+		.attr('transform', 'rotate(-90)')
+		.attr('y', -margin.left + 15)
+		.attr('x', -height / 2)
+		.attr('text-anchor', 'middle')
+		.style('font-size', '12px');
+	
 	const formatNum = d3.format(',');
 
 	// === Calcolo EventType per SubType ===
@@ -138,8 +149,12 @@ function renderHistogramChart(container, datasets) {
 		const subType = typeSelect.property('value');
 		const eventType = subTypeToEventType.get(subType) || '';
 		// Usa un colore fisso per tutte le barre dell'istogramma
-		const barColor = '#4e79a7';
+		const barColor = '#1461a9ff';
 		titleEl.text(`${subType} events in ${country}`);
+		
+		// Update Y-axis label with the current sub-event type
+		yAxisLabel.text(`Total number of ${subType} per year`);
+		
 		const series = computeSeries(country, subType);
 
 		xScale.domain(series.map(d => d.year));
@@ -166,11 +181,8 @@ function renderHistogramChart(container, datasets) {
 					.style('display', 'block')
 					.style('opacity', 1)
 					.html(`
-						<strong>Year:</strong> ${d.year}<br>
-						<strong>Event type:</strong> ${eventType || 'N/A'}<br>
-						<strong>Subtype:</strong> ${subType}<br>
-						<strong>Events:</strong> ${formatNum(d.events)}<br>
-						<strong>Fatalities:</strong> ${formatNum(detail?.fatalities || 0)}
+						<div style="text-align: center;"><strong>${d.year}</strong></div>
+						<strong>Count: </strong> ${formatNum(d.events)}<br>
 					`);
 				const x = event.pageX + 14;
 				const y = event.pageY + 16;

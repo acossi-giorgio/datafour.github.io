@@ -189,6 +189,7 @@ function renderBoxPlotChart(container, datasets) {
     const max = sorted[sorted.length - 1];
     const lowerFence = q1 - 1.5 * iqr;
     const upperFence = q3 + 1.5 * iqr;
+    const count = sorted.length;
 
     const whiskerLow = sorted.find(v => v >= lowerFence) ?? min;
 
@@ -202,7 +203,7 @@ function renderBoxPlotChart(container, datasets) {
 
     const outliers = sorted.filter(v => v < whiskerLow || v > whiskerHigh);
 
-    return { q1, median, q3, whiskerLow, whiskerHigh, min, max, outliers };
+    return { q1, median, q3, whiskerLow, whiskerHigh, min, max, outliers, count};
   }
 
   // --- Scales & axes -------------------------------------------------------
@@ -377,11 +378,12 @@ function renderBoxPlotChart(container, datasets) {
         showTooltip(
           event,
           `<strong>${d.label}</strong><br>
+           Samples: ${s.count}<br/>
            Q1: ${formatNumber(s.q1)}<br>
            Median: ${formatNumber(s.median)}<br>
            Q3: ${formatNumber(s.q3)}<br>
-           Whisker low: ${formatNumber(s.whiskerLow)}<br>
-           Whisker high: ${formatNumber(s.whiskerHigh)}`
+           Min: ${formatNumber(s.whiskerLow)}<br>
+           Max: ${formatNumber(s.whiskerHigh)}`
         );
       })
       .on('mouseout blur', hideTooltip);
