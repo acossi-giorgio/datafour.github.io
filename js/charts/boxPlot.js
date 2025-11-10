@@ -1,5 +1,6 @@
 function renderBoxPlotChart(container, datasets) {
   const SELECT_ID = 'boxplot-country-select';
+  const YEAR_SELECT_ID = 'boxplot-year-select';
   const TOOLTIP_ID = 'boxplot-tooltip';
 
   const root = d3.select(container);
@@ -52,7 +53,9 @@ function renderBoxPlotChart(container, datasets) {
     const headingNode = headingSel.node();
     const selectNode = select.node();
 
-    if (headingNode && selectNode && headingNode.nextSibling !== selectNode) {
+    // If a dedicated controls container exists, keep the select there (don't relocate under heading)
+    const controlsExists = !root.select('#boxplot-controls').empty();
+    if (!controlsExists && headingNode && selectNode && headingNode.nextSibling !== selectNode) {
       headingNode.parentNode.insertBefore(selectNode, headingNode.nextSibling);
 
       d3.select(selectNode)
@@ -63,6 +66,18 @@ function renderBoxPlotChart(container, datasets) {
     }
 
     return select;
+  }
+
+  function getOrCreateYearSelect() {
+    // Year select already exists in HTML; just populate if needed
+    let yearSelect = root.select(`#${YEAR_SELECT_ID}`);
+    if (yearSelect.empty()) {
+      yearSelect = root
+        .append('select')
+        .attr('id', YEAR_SELECT_ID)
+        .attr('class', 'form-select form-select-sm');
+    }
+    return yearSelect;
   }
 
   function getOrCreateTooltip() {
@@ -83,6 +98,14 @@ function renderBoxPlotChart(container, datasets) {
   }
 
   const countrySelect = getOrCreateCountrySelect();
+  // Year select: prefer local #boxplot-year-select else shared #shared-year-select
+  let yearSelect = root.select('#boxplot-year-select');
+  const sharedYear = d3.select('#shared-year-select');
+  if (!sharedYear.empty()) {
+    yearSelect = sharedYear;
+  } else if (yearSelect.empty()) {
+    yearSelect = getOrCreateYearSelect();
+  }
   const tooltip = getOrCreateTooltip();
   const formatNumber = d3.format(',');
 
@@ -115,12 +138,13 @@ function renderBoxPlotChart(container, datasets) {
   const normalizeAggregated = d => ({
     country: (d.COUNTRY || d.Country || d.country || '').trim(),
     subEventType: (d.SUB_EVENT_TYPE || d.sub_event_type || '').trim(),
-    events: +(d.EVENTS ?? d.Events ?? d.events ?? 0)
+    events: +(d.EVENTS ?? d.Events ?? d.events ?? 0),
+    year: +(d.YEAR ?? d.Year ?? d.year ?? 0)
   });
 
   const aggregatedData = (datasets.meaAggregatedData || [])
     .map(normalizeAggregated)
-    .filter(d => d.events >= 0 && d.country && d.subEventType);
+    .filter(d => d.events >= 0 && d.country && d.subEventType && d.year);
 
   // Hard-coded countries: Palestine and Syria
   const countries = ['Palestine', 'Syria'];
@@ -137,6 +161,23 @@ function renderBoxPlotChart(container, datasets) {
     countrySelect.attr('data-populated', '1');
   }
 
+  // Populate year select
+  if (!yearSelect.empty()) {
+    const YEAR_START = (window.YEAR_MIN ?? 2015);
+    const YEAR_END = (window.YEAR_MAX ?? 2024);
+    const years = d3.range(YEAR_START, YEAR_END + 1);
+    if (yearSelect.attr('data-populated') !== '1') {
+      yearSelect
+        .selectAll('option')
+        .data(years)
+        .join('option')
+        .attr('value', d => d)
+        .text(d => d);
+      yearSelect.property('value', years.includes(2024) ? 2024 : YEAR_END);
+      yearSelect.attr('data-populated', '1');
+    }
+  }
+
   const subEventTypes = [
     'Shelling/artillery/missile attack',
     'Air/drone strike',
@@ -144,9 +185,9 @@ function renderBoxPlotChart(container, datasets) {
     'Remote explosive/landmine/IED'
   ];
 
-  function valuesForCountryAndType(country, subEventType) {
+  function valuesForCountryAndType(country, subEventType, year) {
     return aggregatedData
-      .filter(d => d.country === country && d.subEventType === subEventType)
+      .filter(d => d.country === country && d.subEventType === subEventType && (!year || d.year === +year))
       .map(d => d.events)
       .filter(v => Number.isFinite(v) && v >= 0);
   }
@@ -206,6 +247,7 @@ function renderBoxPlotChart(container, datasets) {
   function update() {
     const selectedCountry =
       countrySelect.property('value') || countries[0] || null;
+    const selectedYear = yearSelect.property('value');
 
     g.selectAll('.no-data-text').remove();
     g.selectAll('.box-group').remove();
@@ -225,7 +267,7 @@ function renderBoxPlotChart(container, datasets) {
       .map((subEventType, idx) => ({
         id: subEventType,
         label: subEventType,
-        values: valuesForCountryAndType(selectedCountry, subEventType),
+        values: valuesForCountryAndType(selectedCountry, subEventType, selectedYear),
         color: '#d8a305ff'
       }))
       .map(cfg => ({ ...cfg, stats: computeBoxStats(cfg.values) }))
@@ -377,4 +419,5 @@ function renderBoxPlotChart(container, datasets) {
 
   update();
   countrySelect.on('change.boxplot', update);
+  yearSelect.on('change.boxplot-year', update);
 }

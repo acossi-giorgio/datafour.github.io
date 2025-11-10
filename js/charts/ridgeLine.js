@@ -59,13 +59,15 @@ function renderRidgeLinePlot(container, datasets) {
         if (!data.length) return renderEmpty('No data available');
 
         const byYearMap = d3.group(data, d => d.year);
-        const yearData = Array.from(byYearMap.keys())
-            .filter(y => y >= 2015 && y <= 2024)
-            .sort((a, b) => b - a)
-            .map(y => ({ year: y, values: byYearMap.get(y).map(d => d.events) }))
-            .filter(d => d.values.length);
+        // Includi sempre tutti gli anni 2015-2024 (anche se vuoti) in ordine decrescente
+        const allYears = d3.range(2024, 2014, -1); // 2024 -> 2015
+        const yearData = allYears.map(y => ({
+            year: y,
+            values: byYearMap.has(y) ? byYearMap.get(y).map(d => d.events) : []
+        }));
 
-        if (!yearData.length) return renderEmpty('Insufficient data');
+        // Se tutti gli anni sono vuoti, mostra placeholder
+        if (yearData.every(d => d.values.length === 0)) return renderEmpty('Insufficient data');
 
         // Calculate KDE for each year
         const kde = (values, bandwidth = 0.5) => {
@@ -90,11 +92,15 @@ function renderRidgeLinePlot(container, datasets) {
             return density.map(d => ({ x: d.x, y: maxDensity > 0 ? d.y / maxDensity : 0 }));
         };
 
-        const densities = yearData.map(d => ({
-            year: d.year,
-            density: d.values.length > 1 ? kde(d.values) : [{ x: d.values[0], y: 1 }],
-            raw: d.values
-        }));
+        const densities = yearData.map(d => {
+            if (d.values.length > 1) {
+                return { year: d.year, density: kde(d.values), raw: d.values };
+            } else if (d.values.length === 1) {
+                return { year: d.year, density: [{ x: d.values[0], y: 1 }], raw: d.values };
+            } else {
+                return { year: d.year, density: [], raw: [] }; // anno vuoto
+            }
+        });
 
         // Scales
         const xScale = d3.scaleLinear()
@@ -103,7 +109,7 @@ function renderRidgeLinePlot(container, datasets) {
 
         const ridgeHeight = 35; // Height allocated for each ridge
         const ridgeSpacing = 8; // Extra spacing between ridges to prevent overlap
-        const totalHeight = densities.length * (ridgeHeight + ridgeSpacing);
+    const totalHeight = densities.length * (ridgeHeight + ridgeSpacing);
         
         const yScale = d3.scaleLinear()
             .domain([0, 1])
@@ -116,24 +122,28 @@ function renderRidgeLinePlot(container, datasets) {
                 .attr('class', 'ridge')
                 .attr('transform', `translate(0, ${yOffset})`);
 
-            // Area generator
+            // Area generator (solo se ci sono dati)
             const area = d3.area()
                 .x(p => xScale(p.x))
                 .y0(ridgeHeight)
                 .y1(p => ridgeHeight - yScale(p.y))
                 .curve(d3.curveBasis);
             
-            // Draw filled area with solid color (lighter fill for clarity)
-            group.append('path')
-                .datum(d.density)
-                .attr('d', area)
-                .attr('fill', '#2a7700')
-                .attr('opacity', 0.75);
+            if (d.raw.length) {
+                group.append('path')
+                    .datum(d.density)
+                    .attr('d', area)
+                    .attr('fill', '#2a7700')
+                    .attr('opacity', 0.75);
+            }
 
             // Estendere la linea del profilo fino ai bordi (aggiungendo punti a y=0)
-            const densityWithEdges = [
+            const densityWithEdges = d.raw.length ? [
                 { x: xScale.domain()[0], y: 0 },
                 ...d.density,
+                { x: xScale.domain()[1], y: 0 }
+            ] : [
+                { x: xScale.domain()[0], y: 0 },
                 { x: xScale.domain()[1], y: 0 }
             ];
 
@@ -150,7 +160,8 @@ function renderRidgeLinePlot(container, datasets) {
                 .attr('d', line)
                 .attr('fill', 'none')
                 .attr('stroke', '#2a7700')
-                .attr('stroke-width', 1.2);
+                .attr('stroke-width', d.raw.length ? 1.2 : 0.9)
+                .attr('stroke-dasharray', d.raw.length ? null : '4 3');
 
             // Year label
             group.append('text')
@@ -171,14 +182,19 @@ function renderRidgeLinePlot(container, datasets) {
                 .attr('fill', 'transparent')
                 .on('mouseover', (e) => {
                     const vals = d.raw;
-                    const stats = {
-                        count: vals.length,
-                        median: d3.median(vals).toFixed(2),
-                        min: d3.min(vals).toFixed(2),
-                        max: d3.max(vals).toFixed(2)
-                    };
-                    const content = `<div class="text-center"><strong>${d.year}</strong></div>
-                        Samples: ${stats.count}<br/>Median: ${stats.median}<br/>Min: ${stats.min}<br/>Max: ${stats.max}`;
+                    let content;
+                    if (!vals.length) {
+                        content = `<div class="text-center"><strong>${d.year}</strong></div>No data`;
+                    } else {
+                        const stats = {
+                            count: vals.length,
+                            median: d3.median(vals).toFixed(2),
+                            min: d3.min(vals).toFixed(2),
+                            max: d3.max(vals).toFixed(2)
+                        };
+                        content = `<div class="text-center"><strong>${d.year}</strong></div>
+                            Samples: ${stats.count}<br/>Median: ${stats.median}<br/>Min: ${stats.min}<br/>Max: ${stats.max}`;
+                    }
                     
                     UI.tooltip.style('display', 'block').style('opacity', 1).html(content);
                     const rect = UI.tooltip.node().getBoundingClientRect();

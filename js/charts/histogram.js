@@ -1,4 +1,7 @@
 function renderHistogramChart(container, datasets) {
+	// Costanti intervallo anni richieste
+	const YEAR_START = 2015;
+	const YEAR_END = 2024; // incluso
 	const root = d3.select(container);
 	const svg = root.select('#histogram-svg');
 	let countrySelect = root.select('#histogram-country-select');
@@ -50,7 +53,8 @@ function renderHistogramChart(container, datasets) {
 			events: +((d.EVENTS != null && d.EVENTS !== '') ? d.EVENTS : 0),
 			year: +((d.YEAR || d.Year || '').toString().trim() || 0)
 		}))
-		.filter(d => d.year >= 2014 && d.year <= 2024 && countriesSet.has(d.country));
+		// Usa le costanti YEAR_START e YEAR_END
+		.filter(d => d.year >= YEAR_START && d.year <= YEAR_END && countriesSet.has(d.country));
 
 	const allCountries = Array.from(new Set(data.map(d => d.country)));
 	const countries = allCountries.filter(c => c === 'Palestine' || c === 'Syria').sort((a, b) => a.localeCompare(b));
@@ -131,7 +135,12 @@ function renderHistogramChart(container, datasets) {
 		filtered.forEach(d => {
 			byYear.set(d.year, (byYear.get(d.year) || 0) + d.events);
 		});
-		return d3.range(2014, 2025).map(y => ({ year: y, events: byYear.get(y) || 0 }));
+		// Crea serie per ogni anno richiesto e marca quelli senza dati originali
+		return d3.range(YEAR_START, YEAR_END + 1).map(y => ({
+			year: y,
+			events: byYear.get(y) || 0,
+			missing: !byYear.has(y) // true se nessun record per l'anno (diverso da 0 eventi espliciti)
+		}));
 	}
 
 	function update() {
@@ -143,6 +152,12 @@ function renderHistogramChart(container, datasets) {
 		yAxisLabel.text(`Total number of ${subType} per year`);
 		
 		const series = computeSeries(country, subType);
+
+		// Avvisa in console quali anni mancano
+		const missingYears = series.filter(d => d.missing).map(d => d.year);
+		if (missingYears.length) {
+			console.warn(`[Histogram] Nessun dato per gli anni: ${missingYears.join(', ')} (subType="${subType}", country="${country}")`);
+		}
 
 		xScale.domain(series.map(d => d.year));
 		yScale.domain([0, d3.max(series, d => d.events) || 1]).nice();
@@ -156,19 +171,15 @@ function renderHistogramChart(container, datasets) {
 			.attr('y', height)
 			.attr('width', xScale.bandwidth())
 			.attr('height', 0)
-			.attr('fill', barColor)
+			.attr('fill', d => d.missing ? '#cccccc' : barColor)
+			.attr('data-missing', d => d.missing ? '1' : '0')
 			.on('mousemove', (event, d) => {
-				const detail = data.find(x =>
-					x.country.toLowerCase().includes(country.toLowerCase()) &&
-					x.subType.toLowerCase().includes(subType.toLowerCase()) &&
-					x.year === d.year
-				);
 				tooltip
 					.style('display', 'block')
 					.style('opacity', 1)
 					.html(`
 						<div style="text-align: center;"><strong>${d.year}</strong></div>
-						<strong>Count: </strong> ${formatNum(d.events)}<br>
+						${d.missing ? '<em>Nessun dato riportato</em><br>' : `<strong>Count:</strong> ${formatNum(d.events)}<br>`}
 					`);
 				const x = event.pageX + 14;
 				const y = event.pageY + 16;
@@ -184,17 +195,18 @@ function renderHistogramChart(container, datasets) {
 
 		barsEnter.transition()
 			.duration(800)
-			.attr('y', d => yScale(d.events))
-			.attr('height', d => height - yScale(d.events));
+			.attr('y', d => d.missing ? (height - 4) : yScale(d.events))
+			.attr('height', d => d.missing ? 4 : (height - yScale(d.events)));
 
 		bars.transition()
 			.duration(600)
 			.attr('x', d => xScale(d.year))
 			.attr('width', xScale.bandwidth())
-			.attr('y', d => yScale(d.events))
-			.attr('height', d => height - yScale(d.events))
-			.attr('fill', barColor);
-			
+			.attr('y', d => d.missing ? (height - 4) : yScale(d.events))
+			.attr('height', d => d.missing ? 4 : (height - yScale(d.events)))
+			.attr('fill', d => d.missing ? '#cccccc' : barColor)
+			.attr('data-missing', d => d.missing ? '1' : '0');
+
 		bars.exit()
 			.transition()
 			.duration(400)

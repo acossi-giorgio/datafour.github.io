@@ -1,13 +1,32 @@
 <div id="box-plot-chart" class="card-shell-narrow">
-  <div id="boxplot-title" class="h4 pt-2 mb-2 fw-bold text-center">
-    Title
-  </div>
+  <div id="boxplot-title" class="h4 pt-2 mb-2 fw-bold text-center">Title</div>
 
-  <div class="d-flex justify-content-center mb-3">
+  <div
+    class="d-flex justify-content-center align-items-center gap-3 mb-3"
+    id="boxplot-controls"
+    style="flex-wrap: wrap"
+  >
+    <label
+      for="boxplot-country-select"
+      class="small text-dark fw-bold text-uppercase mb-0"
+      >Country</label
+    >
     <select
       id="boxplot-country-select"
       class="form-select form-select-sm"
-      style="max-width: 260px;"
+      style="width: 220px"
+      aria-label="Select country"
+    ></select>
+    <label
+      for="boxplot-year-select"
+      class="small text-dark fw-bold text-uppercase mb-0 ms-3"
+      >Year</label
+    >
+    <select
+      id="boxplot-year-select"
+      class="form-select form-select-sm"
+      style="width: 120px"
+      aria-label="Select year"
     ></select>
   </div>
 
@@ -18,10 +37,16 @@
 
 <div class="card-narrow">
   <p class="mt-2 mb-0 pt-2 text-muted small text-start">
-Looking at the distribution of different types of violence across the region's countries reveals the full complexity of the context.
-Some states experience constant tension, with protests and political violence recurring year after year. Others experience sudden peaks, moments when discontent or repression erupts forcefully.
-The boxplot highlights these differences: the wider "boxes" represent countries where instability is chronic, while the narrower ones signal rare but violent crises.
-The attacks against civilians and the resulting casualties add another layer of drama, showing how violence spreads irregularly but steadily.
-Overall, these patterns reveal not only the region's political fragility, but also its human cost: a volatility that continues to impact the lives of millions.
+    Looking at the distribution of different types of violence across the
+    region's countries reveals the full complexity of the context. Some states
+    experience constant tension, with protests and political violence recurring
+    year after year. Others experience sudden peaks, moments when discontent or
+    repression erupts forcefully. The boxplot highlights these differences: the
+    wider "boxes" represent countries where instability is chronic, while the
+    narrower ones signal rare but violent crises. The attacks against civilians
+    and the resulting casualties add another layer of drama, showing how
+    violence spreads irregularly but steadily. Overall, these patterns reveal
+    not only the region's political fragility, but also its human cost: a
+    volatility that continues to impact the lives of millions.
   </p>
 </div>
