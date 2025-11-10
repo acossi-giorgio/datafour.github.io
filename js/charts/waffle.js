@@ -132,7 +132,6 @@ function renderWaffleChart(container, datasets) {
     const tot = totalByKey.get(key) || 0;
     const civ = civiliansByKey.get(key) || 0;
     const pct = tot > 0 ? (civ / tot) * 100 : 0;
-    // Clamp to 0-100 to avoid accidental overflow due to rounding
     const filled = Math.min(100, Math.max(0, Math.round(pct)));
 
     const narrative =

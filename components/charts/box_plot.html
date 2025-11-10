@@ -1,0 +1,48 @@
+<div id="box-plot-chart" class="card-shell-narrow">
+  <div class="h4 pt-2 fw-bold text-center">
+    Under invisible fire
+  </div>
+  <div class="h6 pt-2 mb-4 fw-bold text-center">
+    Weekly distribution of “remote violence” events targeting civilians by year.
+  </div>
+
+  <div
+    class="d-flex justify-content-center align-items-center gap-3 mb-3"
+    id="boxplot-controls"
+    style="flex-wrap: wrap"
+  >
+    <label
+      for="boxplot-country-select"
+      class="small text-dark fw-bold text-uppercase mb-0"
+      >Country</label
+    >
+    <select
+      id="boxplot-country-select"
+      class="form-select form-select-sm"
+      style="width: 220px"
+      aria-label="Select country"
+    ></select>
+    <label
+      for="boxplot-year-select"
+      class="small text-dark fw-bold text-uppercase mb-0 ms-3"
+      >Year</label
+    >
+    <select
+      id="boxplot-year-select"
+      class="form-select form-select-sm"
+      style="width: 120px"
+      aria-label="Select year"
+    ></select>
+  </div>
+
+  <div class="mx-auto mb-4 d-flex justify-content-center">
+    <svg id="box-plot-svg"></svg>
+  </div>
+</div>
+
+<div class="card-narrow">
+  <p class="mb-0 pt-2 text-muted small text-start">
+    The graph shows the dispersion and concentration of remote violence attacks, such as bombings, missile strikes or drone strikes, which hit civilians from a distance, without warning.<br>
+    These data highlight the increasing dehumanization of conflict: it is the cruelest and most detached form of modern warfare, striking without seeing, killing without looking its victims in the face.
+  </p>
+</div>

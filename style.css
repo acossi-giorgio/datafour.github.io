@@ -97,7 +97,11 @@ html {
   scroll-behavior: smooth;
 }
 
-#charts {
+#chapter-1-container {
+  scroll-margin-top: 80px;
+}
+
+#chapter-2-container {
   scroll-margin-top: 80px;
 }
 

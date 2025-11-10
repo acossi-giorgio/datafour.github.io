@@ -1,0 +1,65 @@
+<div id="histogram-chart" class="card-shell-narrow">
+  <div class="h4 pt-2 fw-bold text-center">
+    Attacks and abductions: violence against civilians does not stop
+  </div>
+  <div class="h6 pt-2 mb-4 fw-bold text-center">
+    Annual number of events against civilians by type (“attack” and “abduction
+    or forced disappearance”).
+  </div>
+  <div
+    class="d-flex flex-wrap justify-content-center align-items-center gap-4 mb-3"
+    id="histogram-controls"
+  >
+    <div class="mt-2 d-flex align-items-center gap-2">
+      <label
+        for="histogram-country-select"
+        class="text-uppercase small fw-semibold mb-0"
+        >Country</label
+      >
+      <select
+        id="histogram-country-select"
+        class="form-select form-select-sm"
+      ></select>
+    </div>
+    <div class="mt-2 d-flex align-items-center gap-2">
+      <label
+        for="histogram-type-select"
+        class="text-uppercase small fw-semibold mb-0"
+        >Subtype</label
+      >
+      <select
+        id="histogram-type-select"
+        class="form-select form-select-sm"
+      ></select>
+    </div>
+  </div>
+  <div class="mx-auto mb-4 d-flex justify-content-center">
+    <svg id="histogram-svg"></svg>
+  </div>
+  <div
+    id="histogram-tooltip"
+    style="
+      position: absolute;
+      pointer-events: none;
+      display: none;
+      padding: 6px 10px;
+      background: rgba(0, 0, 0, 0.75);
+      color: #fff;
+      border-radius: 4px;
+      font-size: 12px;
+    "
+  ></div>
+  <div class="card-narrow">
+    <p class="mt-2 mb-0 pt-2 text-muted small text-start">
+      The histograms show how the number of attacks and abductions has changed
+      over the years in Syria and Palestine.<br />
+      We observe a divergent trend in Syria: while direct attacks have gradually
+      decreased in recent years, cases of abduction and forced disappearance
+      have increased. This change suggests a transformation in the dynamics of
+      the conflict: violence has become more silent, aimed at greater control
+      over the population.<br />
+      In Palestine, on the other hand, the number of attacks has increased over
+      time, with a clear peak during the period of greatest tension.
+    </p>
+  </div>
+</div>
