@@ -115,44 +115,18 @@ function renderBoxPlotChart(container, datasets) {
 
   // --- Data normalization --------------------------------------------------
 
-  const normalizeEvents = d => ({
+  const normalizeAggregated = d => ({
     country: (d.COUNTRY || d.Country || d.country || '').trim(),
-    year: +(d.YEAR || d.Year || d.year),
+    subEventType: (d.SUB_EVENT_TYPE || d.sub_event_type || '').trim(),
     events: +(d.EVENTS ?? d.Events ?? d.events ?? 0)
   });
 
-  const normalizeFatalities = d => ({
-    country: (d.COUNTRY || d.Country || d.country || '').trim(),
-    year: +(d.YEAR || d.Year || d.year),
-    events: +(d.FATALITIES ?? d.Fatalities ?? d.fatalities ?? 0)
-  });
+  const aggregatedData = (datasets.meaAggregatedData || [])
+    .map(normalizeAggregated)
+    .filter(d => d.events >= 0 && d.country && d.subEventType);
 
-  const demoData = (datasets.demostrationEvents || [])
-    .map(normalizeEvents)
-    .filter(d => isYearInRange(d.year));
-
-  const targetCivData = (datasets.targetingCiviliansEvents || [])
-    .map(normalizeEvents)
-    .filter(d => isYearInRange(d.year));
-
-  const polViolenceData = (datasets.politicalViolenceEvents || [])
-    .map(normalizeEvents)
-    .filter(d => isYearInRange(d.year));
-
-  const civFatalData = (datasets.civilianFatalities || [])
-    .map(normalizeFatalities)
-    .filter(d => isYearInRange(d.year));
-
-  const allData = [
-    ...demoData,
-    ...targetCivData,
-    ...polViolenceData,
-    ...civFatalData
-  ];
-
-  const countries = Array.from(new Set(allData.map(d => d.country)))
-    .filter(Boolean)
-    .sort((a, b) => a.localeCompare(b));
+  // Hard-coded countries: Palestine and Syria
+  const countries = ['Palestine', 'Syria'];
 
   if (countrySelect.attr('data-populated') !== '1') {
     countrySelect
@@ -162,16 +136,20 @@ function renderBoxPlotChart(container, datasets) {
       .attr('value', d => d)
       .text(d => d);
 
-    const defaultCountry = countries.includes('Syria') ? 'Syria' : countries[0];
-    if (defaultCountry) {
-      countrySelect.property('value', defaultCountry);
-    }
+    countrySelect.property('value', 'Palestine');
     countrySelect.attr('data-populated', '1');
   }
+  // --- Box plot computation -----------------------------------------------
+  const subEventTypes = [
+    'Shelling/artillery/missile attack',
+    'Air/drone strike',
+    'Grenade',
+    'Remote explosive/landmine/IED'
+  ];
 
-  function valuesForCountry(dataArr, country) {
-    return dataArr
-      .filter(d => d.country === country)
+  function valuesForCountryAndType(country, subEventType) {
+    return aggregatedData
+      .filter(d => d.country === country && d.subEventType === subEventType)
       .map(d => d.events)
       .filter(v => Number.isFinite(v) && v >= 0);
   }
@@ -228,7 +206,7 @@ function renderBoxPlotChart(container, datasets) {
     .attr('text-anchor', 'middle')
     .style('font-family', 'Roboto Slab, serif')
     .style('font-size', '13px')
-    .text('Number of events per year');
+    .text('Number of events per wee');
 
   // --- Rendering -----------------------------------------------------------
 
@@ -250,32 +228,13 @@ function renderBoxPlotChart(container, datasets) {
       return;
     }
 
-    const series = [
-      {
-        id: DATASET_KEYS.DEMONSTRATIONS,
-        label: 'Demonstrations',
-        values: valuesForCountry(demoData, selectedCountry),
-        color: getDatasetColor(DATASET_KEYS.DEMONSTRATIONS)
-      },
-      {
-        id: DATASET_KEYS.TARGET_CIVIL_EVENT,
-        label: 'Targeting Civilians',
-        values: valuesForCountry(targetCivData, selectedCountry),
-        color: getDatasetColor(DATASET_KEYS.TARGET_CIVIL_EVENT)
-      },
-      {
-        id: DATASET_KEYS.POLITICAL_VIOLENCE,
-        label: 'Political Violence',
-        values: valuesForCountry(polViolenceData, selectedCountry),
-        color: getDatasetColor(DATASET_KEYS.POLITICAL_VIOLENCE)
-      },
-      {
-        id: DATASET_KEYS.CIVILIAN_FATALITIES,
-        label: 'Civilian Fatalities',
-        values: valuesForCountry(civFatalData, selectedCountry),
-        color: getDatasetColor(DATASET_KEYS.CIVILIAN_FATALITIES)
-      }
-    ]
+    const series = subEventTypes
+      .map((subEventType, idx) => ({
+        id: subEventType,
+        label: subEventType,
+        values: valuesForCountryAndType(selectedCountry, subEventType),
+        color: '#d8a305ff'
+      }))
       .map(cfg => ({ ...cfg, stats: computeBoxStats(cfg.values) }))
       .filter(s => s.stats);
 
@@ -424,7 +383,7 @@ function renderBoxPlotChart(container, datasets) {
     });
 
     // y-axis title is static; keep text in case you want to localize later
-    yAxisTitle.text('Number of events per year');
+    yAxisTitle.text('Number of events per week');
   }
 
   update();
