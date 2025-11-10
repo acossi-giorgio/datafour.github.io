@@ -277,17 +277,8 @@ function renderBoxPlotChart(container, datasets) {
       return;
     }
 
-    const allValues = series.flatMap(b => [
-      ...(b.stats.outliers || []),
-      b.stats.whiskerLow,
-      b.stats.whiskerHigh
-    ]);
-
-    const yMax = d3.max(allValues) || 1;
-    const yPadding = yMax * 0.05;
-
     xScale.domain(series.map(d => d.label));
-    yScale.domain([0, yMax + yPadding]).nice();
+    yScale.domain([0, 200]);
 
     const xAxis = d3.axisBottom(xScale);
     const yAxis = d3.axisLeft(yScale).ticks(6);

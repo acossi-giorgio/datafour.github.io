@@ -66,7 +66,7 @@ function renderHistogramChart(container, datasets) {
 			.join('option')
 			.attr('value', d => d)
 			.text(d => d);
-		countrySelect.property('value', countries.includes('Syria') ? 'Syria' : countries[0]);
+		countrySelect.property('value', countries.includes('Palestine') ? 'Palestine' : countries[0]);
 		countrySelect.attr('data-populated', '1');
 	}
 	if (typeSelect.attr('data-populated') !== '1') {
@@ -76,7 +76,7 @@ function renderHistogramChart(container, datasets) {
 			.join('option')
 			.attr('value', d => d)
 			.text(d => d);
-		const defaultType = 'Abduction/forced disappearance';
+		const defaultType = 'Attack';
 		typeSelect.property('value', defaultType);
 		typeSelect.attr('data-populated', '1');
 	}
@@ -134,11 +134,19 @@ function renderHistogramChart(container, datasets) {
 
 		const missingYears = series.filter(d => d.missing).map(d => d.year);
 		if (missingYears.length) {
-			console.warn(`[Histogram] Nessun dato per gli anni: ${missingYears.join(', ')} (subType="${subType}", country="${country}")`);
+			console.warn(`[Histogram] Not enough data: ${missingYears.join(', ')} (subType="${subType}", country="${country}")`);
 		}
 
 		xScale.domain(series.map(d => d.year));
-		yScale.domain([0, d3.max(series, d => d.events) || 1]).nice();
+		let maxY;
+		if (/^attack$/i.test(subType)) {
+			maxY = 10600;
+		} else if (/^abduction\/forced disappearance$/i.test(subType)) {
+			maxY = 1000;
+		} else {
+			maxY = d3.max(series, d => d.events) || 1;
+		}
+		yScale.domain([0, maxY]);
 
 		const bars = g.selectAll('.hist-bar').data(series, d => d.year);
 
@@ -157,7 +165,7 @@ function renderHistogramChart(container, datasets) {
 					.style('opacity', 1)
 					.html(`
 						<div style="text-align: center;"><strong>${d.year}</strong></div>
-						${d.missing ? '<em>Nessun dato riportato</em><br>' : `<strong>Count:</strong> ${formatNum(d.events)}<br>`}
+						${d.missing ? '<em>Not enough data</em><br>' : `<strong>Count:</strong> ${formatNum(d.events)}<br>`}
 					`);
 				const x = event.pageX + 14;
 				const y = event.pageY + 16;
