@@ -29,7 +29,7 @@ function renderBarHorizontalChart(container, datasets) {
   const tooltip = ensureTooltip();
 
   const sharedLayout = !d3.select('#fatalities-shared').empty();
-  const margin = sharedLayout ? { top: 20, right: 80, bottom: 30, left: 70 } : { top: 10, right: 50, bottom: 20, left: 50 };
+  const margin = sharedLayout ? { top: 20, right: 80, bottom: 30, left: 80 } : { top: 10, right: 60, bottom: 20, left: 60 };
   const fullWidth = sharedLayout ? 500 : 700;
   const fullHeight = sharedLayout ? 420 : 300;
   const width = fullWidth - margin.left - margin.right;
@@ -89,7 +89,7 @@ function renderBarHorizontalChart(container, datasets) {
               tooltip
                 .style('display', 'block')
                 .style('opacity', 1)
-                .html(`<strong>${d.country}</strong><br>Fatalities: ${formatNum(d.fatalities)}`);
+                .html(`<div style="text-align: center;"><strong>${d.country}</strong></div>Fatalities: ${formatNum(d.fatalities)}`);
               const x = event.pageX + 14;
               const y = event.pageY + 16;
               const rect = tooltip.node().getBoundingClientRect();
