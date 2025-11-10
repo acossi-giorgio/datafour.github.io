@@ -60,15 +60,20 @@ function renderViolinPlot(container, datasets) {
         if (!data.length) return renderEmpty('No data available');
 
         const byYearMap = d3.group(data, d => d.year);
-        const yearData = Array.from(byYearMap.keys())
-            .sort((a, b) => a - b)
-            .map(y => ({ year: y, values: byYearMap.get(y).map(d => d.events) }))
-            .filter(d => d.values.length);
+        
+        // Generate all years from 2015 to 2024, even if no data
+        const allYears = d3.range(2015, 2025); // 2015 to 2024 inclusive
+        const yearData = allYears
+            .map(y => {
+                const values = byYearMap.has(y) ? byYearMap.get(y).map(d => d.events) : [];
+                return { year: y, values };
+            })
+            .filter(d => d.values.length > 0); // Only keep years with data
 
         if (!yearData.length) return renderEmpty('Insufficient data');
 
         const yScale = d3.scaleLinear()
-            .domain([0, d3.max(yearData.flatMap(d => d.values)) * 1.05])
+            .domain([0, 120])
             .range([height, 0]);
 
         const xScale = d3.scaleBand()

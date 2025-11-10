@@ -23,6 +23,7 @@ async function init() {
   await loadComponent('bar-horizontal-container', 'components/charts/bar_horizontal.html');
   await loadComponent('histogram-container', 'components/charts/histogram.html');
   await loadComponent('violin-plot-container', 'components/charts/violin_plot.html');
+  await loadComponent('ridgeline-plot-container', 'components/charts/ridgeline_plot.html');
   await loadComponent('boxplot-container', 'components/charts/box_plot.html');
 
   renderChart('grouped-bar-chart', renderGroupedBarChart, datasets);
@@ -33,6 +34,7 @@ async function init() {
   renderChart('circlepacking-chart', renderCirclePacking, datasets); 
   renderChart('histogram-chart', renderHistogramChart, datasets);
   renderChart('violin-chart', renderViolinPlot, datasets);
+  renderChart('ridgeline-chart', renderRidgeLinePlot, datasets);
   renderChart('box-plot-chart', renderBoxPlotChart, datasets);
 
   setupMobileNavAutoClose();
