@@ -1,7 +1,6 @@
 function renderHistogramChart(container, datasets) {
-	// Costanti intervallo anni richieste
 	const YEAR_START = 2015;
-	const YEAR_END = 2024; // incluso
+	const YEAR_END = 2024;
 	const root = d3.select(container);
 	const svg = root.select('#histogram-svg');
 	let countrySelect = root.select('#histogram-country-select');
@@ -53,7 +52,6 @@ function renderHistogramChart(container, datasets) {
 			events: +((d.EVENTS != null && d.EVENTS !== '') ? d.EVENTS : 0),
 			year: +((d.YEAR || d.Year || '').toString().trim() || 0)
 		}))
-		// Usa le costanti YEAR_START e YEAR_END
 		.filter(d => d.year >= YEAR_START && d.year <= YEAR_END && countriesSet.has(d.country));
 
 	const allCountries = Array.from(new Set(data.map(d => d.country)));
@@ -78,10 +76,7 @@ function renderHistogramChart(container, datasets) {
 			.join('option')
 			.attr('value', d => d)
 			.text(d => d);
-		const defaultType =
-			['Attack', 'Abduction/forced disappearance', 'Sexual violence'].find(t =>
-				subTypes.includes(t)
-			) || subTypes[0];
+		const defaultType = 'Abduction/forced disappearance';
 		typeSelect.property('value', defaultType);
 		typeSelect.attr('data-populated', '1');
 	}
@@ -110,21 +105,6 @@ function renderHistogramChart(container, datasets) {
 				.sort((a, b) => b.total - a.total)[0]?.eventType || null,
 		d => d.subType
 	);
-	const subTypeToEventType = new Map(subTypeEventTotals);
-
-	function eventTypeToDatasetKey(eventType) {
-		switch ((eventType || '').toLowerCase()) {
-			case 'protests': return DATASET_KEYS.DEMONSTRATIONS;
-			case 'violence against civilians': return DATASET_KEYS.TARGET_CIVIL_EVENT;
-			case 'battles': return DATASET_KEYS.POLITICAL_VIOLENCE;
-			case 'explosions/remote violence':
-			case 'riots':
-			case 'strategic developments':
-				return DATASET_KEYS.OTHER_POLITICAL_VIOLENCE;
-			default:
-				return DATASET_KEYS.POLITICAL_VIOLENCE;
-		}
-	}
 
 	function computeSeries(country, subType) {
 		const filtered = data.filter(d =>
@@ -135,11 +115,10 @@ function renderHistogramChart(container, datasets) {
 		filtered.forEach(d => {
 			byYear.set(d.year, (byYear.get(d.year) || 0) + d.events);
 		});
-		// Crea serie per ogni anno richiesto e marca quelli senza dati originali
 		return d3.range(YEAR_START, YEAR_END + 1).map(y => ({
 			year: y,
 			events: byYear.get(y) || 0,
-			missing: !byYear.has(y) // true se nessun record per l'anno (diverso da 0 eventi espliciti)
+			missing: !byYear.has(y)
 		}));
 	}
 
@@ -153,7 +132,6 @@ function renderHistogramChart(container, datasets) {
 		
 		const series = computeSeries(country, subType);
 
-		// Avvisa in console quali anni mancano
 		const missingYears = series.filter(d => d.missing).map(d => d.year);
 		if (missingYears.length) {
 			console.warn(`[Histogram] Nessun dato per gli anni: ${missingYears.join(', ')} (subType="${subType}", country="${country}")`);

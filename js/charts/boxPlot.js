@@ -27,8 +27,6 @@ function renderBoxPlotChart(container, datasets) {
     .attr('class', 'chart-root')
     .attr('transform', `translate(${margin.left},${margin.top})`);
 
-  // --- UI helpers ---------------------------------------------------------
-
   function getOrCreateCountrySelect() {
     let select = root.select(`#${SELECT_ID}`);
 
@@ -53,7 +51,6 @@ function renderBoxPlotChart(container, datasets) {
     const headingNode = headingSel.node();
     const selectNode = select.node();
 
-    // If a dedicated controls container exists, keep the select there (don't relocate under heading)
     const controlsExists = !root.select('#boxplot-controls').empty();
     if (!controlsExists && headingNode && selectNode && headingNode.nextSibling !== selectNode) {
       headingNode.parentNode.insertBefore(selectNode, headingNode.nextSibling);
@@ -69,7 +66,6 @@ function renderBoxPlotChart(container, datasets) {
   }
 
   function getOrCreateYearSelect() {
-    // Year select already exists in HTML; just populate if needed
     let yearSelect = root.select(`#${YEAR_SELECT_ID}`);
     if (yearSelect.empty()) {
       yearSelect = root
@@ -98,7 +94,6 @@ function renderBoxPlotChart(container, datasets) {
   }
 
   const countrySelect = getOrCreateCountrySelect();
-  // Year select: prefer local #boxplot-year-select else shared #shared-year-select
   let yearSelect = root.select('#boxplot-year-select');
   const sharedYear = d3.select('#shared-year-select');
   if (!sharedYear.empty()) {
@@ -146,7 +141,6 @@ function renderBoxPlotChart(container, datasets) {
     .map(normalizeAggregated)
     .filter(d => d.events >= 0 && d.country && d.subEventType && d.year);
 
-  // Hard-coded countries: Palestine and Syria
   const countries = ['Palestine', 'Syria'];
 
   if (countrySelect.attr('data-populated') !== '1') {
@@ -161,7 +155,6 @@ function renderBoxPlotChart(container, datasets) {
     countrySelect.attr('data-populated', '1');
   }
 
-  // Populate year select
   if (!yearSelect.empty()) {
     const YEAR_START = (window.YEAR_MIN ?? 2015);
     const YEAR_END = (window.YEAR_MAX ?? 2024);
@@ -329,7 +322,6 @@ function renderBoxPlotChart(container, datasets) {
     const boxCenter = boxWidth / 2;
     const whiskerWidth = boxBodyWidth * 0.6;
 
-    // whisker lines
     boxGroups
       .append('line')
       .attr('x1', boxCenter)

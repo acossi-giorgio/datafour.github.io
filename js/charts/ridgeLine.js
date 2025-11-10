@@ -13,7 +13,7 @@ function renderRidgeLinePlot(container, datasets) {
             .style('opacity', 0)
     };
 
-    const raw = (datasets.meaAggregatedData || [])
+    const cleanData = (datasets.meaAggregatedData || [])
         .map(d => ({
             country: (d.COUNTRY || d.Country || '').trim(),
             subType: (d.SUB_EVENT_TYPE || d.SubEventType || '').trim(),
@@ -34,7 +34,7 @@ function renderRidgeLinePlot(container, datasets) {
     function drawRidgeline(country, subType) {
         d3.select(UI.chartHolder).selectAll('svg').remove();
 
-        const data = raw.filter(d => (!country || d.country === country) && (!subType || d.subType === subType));
+        const data = cleanData.filter(d => (!country || d.country === country) && (!subType || d.subType === subType));
         const margin = { top: 20, right: 30, bottom: 40, left: 60 };
         const width = 800 - margin.left - margin.right;
         const height = 500 - margin.top - margin.bottom;
@@ -46,124 +46,94 @@ function renderRidgeLinePlot(container, datasets) {
             .append('g')
             .attr('transform', `translate(${margin.left},${margin.top})`);
 
-        const renderEmpty = (msg) => {
+        const renderText = (msg, yPos = height / 2) => {
             svg.append('text')
                 .attr('x', width / 2)
-                .attr('y', height / 2)
+                .attr('y', yPos)
                 .attr('text-anchor', 'middle')
                 .attr('class', 'chart-placeholder-text')
                 .style('font-family', 'Roboto Slab, serif')
                 .text(msg);
         };
 
-        if (!data.length) return renderEmpty('No data available');
+        if (!data.length) return renderText('No data available');
 
         const byYearMap = d3.group(data, d => d.year);
-        // Includi sempre tutti gli anni 2015-2024 (anche se vuoti) in ordine decrescente
-        const allYears = d3.range(2024, 2014, -1); // 2024 -> 2015
-        const yearData = allYears.map(y => ({
+        const guaranteedYears = d3.range(2024, 2014, -1);
+        const yearData = guaranteedYears.map(y => ({
             year: y,
-            values: byYearMap.has(y) ? byYearMap.get(y).map(d => d.events) : []
+            values: byYearMap.get(y)?.map(d => d.events) || []
         }));
 
-        // Se tutti gli anni sono vuoti, mostra placeholder
-        if (yearData.every(d => d.values.length === 0)) return renderEmpty('Insufficient data');
+        if (yearData.every(d => d.values.length === 0)) return renderText('Insufficient data');
 
-        // Calculate KDE for each year
         const kde = (values, bandwidth = 0.5) => {
             const sorted = values.slice().sort((a, b) => a - b);
             const min = d3.min(sorted);
             const max = d3.max(sorted);
             const range = max - min || 1;
             const bw = bandwidth * range / 10;
-            
             const gridSize = 100;
             const grid = d3.range(Math.max(0, min - range * 0.1), max + range * 0.1, (max - min + range * 0.2) / gridSize);
-            
+
             const density = grid.map(x => {
-                const sum = d3.sum(values, v => {
-                    const u = (x - v) / bw;
-                    return Math.exp(-0.5 * u * u) / Math.sqrt(2 * Math.PI);
-                });
+                const sum = d3.sum(values, v => Math.exp(-0.5 * Math.pow((x - v) / bw, 2)) / Math.sqrt(2 * Math.PI));
                 return { x, y: sum / (values.length * bw) };
             });
-            
+
             const maxDensity = d3.max(density, d => d.y);
             return density.map(d => ({ x: d.x, y: maxDensity > 0 ? d.y / maxDensity : 0 }));
         };
 
-        const densities = yearData.map(d => {
-            if (d.values.length > 1) {
-                return { year: d.year, density: kde(d.values), raw: d.values };
-            } else if (d.values.length === 1) {
-                return { year: d.year, density: [{ x: d.values[0], y: 1 }], raw: d.values };
-            } else {
-                return { year: d.year, density: [], raw: [] }; // anno vuoto
-            }
-        });
+        const densities = yearData.map(d => ({
+            year: d.year,
+            raw: d.values,
+            density: d.values.length > 1 ? kde(d.values) : 
+                     d.values.length === 1 ? [{ x: d.values[0], y: 1 }] : []
+        }));
 
-        // Scales
-        const xScale = d3.scaleLinear()
-            .domain([0, 120])
-            .range([0, width]);
+        const xScale = d3.scaleLinear().domain([0, 120]).range([0, width]);
+        const ridgeHeight = 35;
+        const ridgeSpacing = 8;
+        const totalHeight = densities.length * (ridgeHeight + ridgeSpacing);
+        const yScale = d3.scaleLinear().domain([0, 1]).range([0, ridgeHeight]);
 
-        const ridgeHeight = 35; // Height allocated for each ridge
-        const ridgeSpacing = 8; // Extra spacing between ridges to prevent overlap
-    const totalHeight = densities.length * (ridgeHeight + ridgeSpacing);
-        
-        const yScale = d3.scaleLinear()
-            .domain([0, 1])
-            .range([0, ridgeHeight]);
+        const MIN_SAMPLE_SIZE = 20;
 
-        // Draw ridges
         densities.forEach((d, i) => {
-            const yOffset = i * (ridgeHeight + ridgeSpacing);
             const group = svg.append('g')
                 .attr('class', 'ridge')
-                .attr('transform', `translate(0, ${yOffset})`);
+                .attr('transform', `translate(0, ${i * (ridgeHeight + ridgeSpacing)})`);
 
-            // Area generator (solo se ci sono dati)
-            const area = d3.area()
-                .x(p => xScale(p.x))
-                .y0(ridgeHeight)
-                .y1(p => ridgeHeight - yScale(p.y))
-                .curve(d3.curveBasis);
-            
-            if (d.raw.length) {
+            const hasEnoughData = d.raw.length >= MIN_SAMPLE_SIZE;
+            const edgePoints = [{ x: xScale.domain()[0], y: 0 }, { x: xScale.domain()[1], y: 0 }];
+            const areaData = d.raw.length ? [edgePoints[0], ...d.density, edgePoints[1]] : edgePoints;
+
+            if (hasEnoughData) {
                 group.append('path')
                     .datum(d.density)
-                    .attr('d', area)
                     .attr('fill', '#2a7700')
-                    .attr('opacity', 0.75);
+                    .attr('opacity', 0.75)
+                    .attr('d', d3.area()
+                        .x(p => xScale(p.x))
+                        .y0(ridgeHeight)
+                        .y1(p => ridgeHeight - yScale(p.y))
+                        .curve(d3.curveBasis)
+                    );
             }
 
-            // Estendere la linea del profilo fino ai bordi (aggiungendo punti a y=0)
-            const densityWithEdges = d.raw.length ? [
-                { x: xScale.domain()[0], y: 0 },
-                ...d.density,
-                { x: xScale.domain()[1], y: 0 }
-            ] : [
-                { x: xScale.domain()[0], y: 0 },
-                { x: xScale.domain()[1], y: 0 }
-            ];
-
-    
-
-            // Draw outline
-            const line = d3.line()
-                .x(p => xScale(p.x))
-                .y(p => ridgeHeight - yScale(p.y))
-                .curve(d3.curveBasis);
-
             group.append('path')
-                .datum(densityWithEdges)
-                .attr('d', line)
+                .datum(hasEnoughData ? areaData : edgePoints)
                 .attr('fill', 'none')
                 .attr('stroke', '#2a7700')
                 .attr('stroke-width', d.raw.length ? 1.2 : 0.9)
-                .attr('stroke-dasharray', d.raw.length ? null : '4 3');
+                .attr('stroke-dasharray', hasEnoughData ? null : '4 3')
+                .attr('d', d3.line()
+                    .x(p => xScale(p.x))
+                    .y(p => ridgeHeight - yScale(p.y))
+                    .curve(d3.curveBasis)
+                );
 
-            // Year label
             group.append('text')
                 .attr('x', -10)
                 .attr('y', ridgeHeight / 2)
@@ -173,54 +143,25 @@ function renderRidgeLinePlot(container, datasets) {
                 .style('font-size', '11px')
                 .style('font-weight', '500')
                 .text(d.year);
-            // Tooltip interaction
+
             group.append('rect')
-                .attr('x', 0)
-                .attr('y', 0)
                 .attr('width', width)
                 .attr('height', ridgeHeight)
                 .attr('fill', 'transparent')
                 .on('mouseover', (e) => {
-                    const vals = d.raw;
-                    let content;
-                    if (!vals.length) {
-                        content = `<div class="text-center"><strong>${d.year}</strong></div>No data`;
-                    } else {
-                        const stats = {
-                            count: vals.length,
-                            median: d3.median(vals).toFixed(2),
-                            min: d3.min(vals).toFixed(2),
-                            max: d3.max(vals).toFixed(2)
-                        };
-                        content = `<div class="text-center"><strong>${d.year}</strong></div>
-                            Samples: ${stats.count}<br/>Median: ${stats.median}<br/>Min: ${stats.min}<br/>Max: ${stats.max}`;
-                    }
-                    
-                    UI.tooltip.style('display', 'block').style('opacity', 1).html(content);
-                    const rect = UI.tooltip.node().getBoundingClientRect();
-                    const left = Math.min(e.pageX + 15, window.innerWidth + window.scrollX - rect.width - 15);
-                    const top = Math.min(e.pageY + 15, window.innerHeight + window.scrollY - rect.height - 15);
-                    UI.tooltip.style('left', `${left}px`).style('top', `${top}px`);
+                    UI.tooltip.style('display', 'block').style('opacity', 1).html(getTooltipHtml(d.year, d.raw));
+                    updateTooltipPos(e);
                 })
-                .on('mousemove', (e) => {
-                    const rect = UI.tooltip.node().getBoundingClientRect();
-                    const left = Math.min(e.pageX + 15, window.innerWidth + window.scrollX - rect.width - 15);
-                    const top = Math.min(e.pageY + 15, window.innerHeight + window.scrollY - rect.height - 15);
-                    UI.tooltip.style('left', `${left}px`).style('top', `${top}px`);
-                })
-                .on('mouseleave', () => {
-                    UI.tooltip.style('opacity', 0).style('display', 'none');
-                });
+                .on('mousemove', updateTooltipPos)
+                .on('mouseleave', () => UI.tooltip.style('opacity', 0).style('display', 'none'));
         });
 
-        // X-axis
         svg.append('g')
             .attr('transform', `translate(0,${totalHeight})`)
             .call(d3.axisBottom(xScale).ticks(8))
             .style('font-family', 'Roboto Slab, serif')
             .style('font-size', '11px');
 
-        // X-axis label
         svg.append('text')
             .attr('x', width / 2)
             .attr('y', totalHeight + 35)
@@ -228,9 +169,33 @@ function renderRidgeLinePlot(container, datasets) {
             .style('font-size', '12px')
             .style('font-family', 'Roboto Slab, serif')
             .text(`Number of ${subType} per week`);
+
+        function getTooltipHtml(year, vals) {
+            if (!vals.length) return `<div class="text-center"><strong>${year}</strong></div>No data`;
+            
+            const stats = {
+                count: vals.length,
+                median: d3.median(vals).toFixed(2),
+                min: d3.min(vals).toFixed(2),
+                max: d3.max(vals).toFixed(2)
+            };
+            
+            let html = `<div class="text-center"><strong>${year}</strong></div>`;
+            if (vals.length < MIN_SAMPLE_SIZE) html += 'Not enough data<br/>';
+            return html + `Samples: ${stats.count}<br/>Median: ${stats.median}<br/>Min: ${stats.min}<br/>Max: ${stats.max}`;
+        }
+
+        function updateTooltipPos(e) {
+            const rect = UI.tooltip.node().getBoundingClientRect();
+            const left = Math.min(e.pageX + 15, window.innerWidth + window.scrollX - rect.width - 15);
+            const top = Math.min(e.pageY + 15, window.innerHeight + window.scrollY - rect.height - 15);
+            UI.tooltip.style('left', `${left}px`).style('top', `${top}px`);
+        }
     }
 
-    UI.countrySelect?.addEventListener('change', () => drawRidgeline(UI.countrySelect.value, UI.subTypeSelect.value));
-    UI.subTypeSelect?.addEventListener('change', () => drawRidgeline(UI.countrySelect.value, UI.subTypeSelect.value));
+    const refresh = () => drawRidgeline(UI.countrySelect?.value, UI.subTypeSelect?.value);
+    UI.countrySelect?.addEventListener('change', refresh);
+    UI.subTypeSelect?.addEventListener('change', refresh);
+    
     drawRidgeline(UI.countrySelect?.value || 'Palestine', UI.subTypeSelect?.value || 'Peaceful protest');
 }
