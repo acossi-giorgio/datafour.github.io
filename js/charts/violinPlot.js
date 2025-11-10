@@ -1,230 +1,173 @@
 function renderViolinPlot(container, datasets) {
-    const countrySelect = document.getElementById('violin-country-select');
-    const subTypeSelect = document.getElementById('violin-subtype-select');
-    const chartHolder = document.getElementById('violin-chart-inner');
-
-    const raw = (datasets.meaAggregatedData || []).map(d => ({
-        country: (d.COUNTRY || d.Country || '').trim(),
-        subType: (d.SUB_EVENT_TYPE || d.SubEventType || '').trim(),
-        events: +((d.EVENTS != null && d.EVENTS !== '') ? d.EVENTS : 0),
-        year: +(d.YEAR || d.Year || 0)
-    })).filter(d => d.year && !isNaN(d.events));
-
-    function updateCountryOptions() {
-        if (!countrySelect) return;
-        const prevVal = countrySelect.value;
-        countrySelect.innerHTML = '';
-
-        const allowedCountries = ['Palestine', 'Syria'];
-        allowedCountries.forEach(c => {
-            const opt = document.createElement('option');
-            opt.value = c;
-            opt.textContent = c;
-            countrySelect.appendChild(opt);
-        });
-
-        if (prevVal && allowedCountries.includes(prevVal)) {
-            countrySelect.value = prevVal;
-        } else {
-            countrySelect.value = 'Palestine';
-        }
-    }
-
-    function updateSubTypeOptions() {
-        if (!subTypeSelect) return;
-        const prevVal = subTypeSelect.value;
-        subTypeSelect.innerHTML = '';
-
-        const allowedSubTypes = ['Peaceful protest', 'Violent demonstration'];
-        allowedSubTypes.forEach(s => {
-            const opt = document.createElement('option');
-            opt.value = s;
-            opt.textContent = s;
-            subTypeSelect.appendChild(opt);
-        });
-
-        if (prevVal && allowedSubTypes.includes(prevVal)) {
-            subTypeSelect.value = prevVal;
-        } else {
-            subTypeSelect.value = 'Peaceful protest';
-        }
-    }
-
-    if (countrySelect) {
-        updateCountryOptions();
-    }
-    if (subTypeSelect) {
-        updateSubTypeOptions();
-    }
-
-    let tooltip = d3.select('#violin-tooltip');
-    if (tooltip.empty()) {
-        tooltip = d3.select('body').append('div')
+    const UI = {
+        countrySelect: document.getElementById('violin-country-select'),
+        subTypeSelect: document.getElementById('violin-subtype-select'),
+        chartHolder: document.getElementById('violin-chart-inner'),
+        tooltip: d3.select('body').selectAll('#violin-tooltip').data([0])
+            .join('div')
             .attr('id', 'violin-tooltip')
             .attr('class', 'chart-tooltip')
             .style('position', 'absolute')
             .style('pointer-events', 'none')
             .style('display', 'none')
-            .style('opacity', 0);
-    }
+            .style('opacity', 0)
+    };
+
+    const raw = (datasets.meaAggregatedData || [])
+        .map(d => ({
+            country: (d.COUNTRY || d.Country || '').trim(),
+            subType: (d.SUB_EVENT_TYPE || d.SubEventType || '').trim(),
+            events: +(d.EVENTS || 0),
+            year: +(d.YEAR || d.Year || 0)
+        }))
+        .filter(d => d.year && !isNaN(d.events));
+
+    const populateSelect = (el, options, defaultVal) => {
+        if (!el) return;
+        el.innerHTML = options.map(o => `<option value="${o}">${o}</option>`).join('');
+        // Keep existing selection if valid, otherwise reset to default
+        if (!options.includes(el.value)) el.value = defaultVal;
+    };
+
+    populateSelect(UI.countrySelect, ['Palestine', 'Syria'], 'Palestine');
+    populateSelect(UI.subTypeSelect, ['Peaceful protest', 'Violent demonstration'], 'Peaceful protest');
 
     function drawViolin(country, subType) {
-        d3.select(chartHolder).selectAll('svg').remove();
+        d3.select(UI.chartHolder).selectAll('svg').remove();
 
         const data = raw.filter(d => (!country || d.country === country) && (!subType || d.subType === subType));
         const margin = { top: 20, right: 30, bottom: 40, left: 60 };
         const width = 800 - margin.left - margin.right;
         const height = 420 - margin.top - margin.bottom;
 
-        const svg = d3.select(chartHolder)
+        const svg = d3.select(UI.chartHolder)
             .append('svg')
             .attr('width', width + margin.left + margin.right)
             .attr('height', height + margin.top + margin.bottom)
             .append('g')
             .attr('transform', `translate(${margin.left},${margin.top})`);
 
-        if (!data.length) {
-            svg.append('text')
+        const renderEmpty = (msg) => {
+             svg.append('text')
                 .attr('x', width / 2)
                 .attr('y', height / 2)
                 .attr('text-anchor', 'middle')
+                .attr('class', 'chart-placeholder-text')
                 .style('font-family', 'Roboto Slab, serif')
-                .text('No data available');
-            return;
-        }
+                .text(msg);
+        };
+
+        if (!data.length) return renderEmpty('No data available');
 
         const byYearMap = d3.group(data, d => d.year);
-        const years = Array.from(byYearMap.keys()).sort((a, b) => a - b);
-        const yearData = years.map(y => ({ year: y, values: byYearMap.get(y).map(d => d.events) }))
+        const yearData = Array.from(byYearMap.keys())
+            .sort((a, b) => a - b)
+            .map(y => ({ year: y, values: byYearMap.get(y).map(d => d.events) }))
             .filter(d => d.values.length);
 
-        if (!yearData.length) {
-            svg.append('text')
-                .attr('x', width / 2)
-                .attr('y', height / 2)
-                .attr('text-anchor', 'middle')
-                .style('font-family', 'Roboto Slab, serif')
-                .text('Insufficient data');
-            return;
-        }
+        if (!yearData.length) return renderEmpty('Insufficient data');
 
-        const allValues = yearData.flatMap(d => d.values);
         const yScale = d3.scaleLinear()
-            .domain([0, d3.max(allValues) * 1.05])
+            .domain([0, d3.max(yearData.flatMap(d => d.values)) * 1.05])
             .range([height, 0]);
-
-        svg.append('g').call(d3.axisLeft(yScale))
-            .selectAll('text')
-            .style('font-size', '11px')
-            .style('font-family', 'Roboto Slab, serif');
 
         const xScale = d3.scaleBand()
             .domain(yearData.map(d => d.year))
             .range([0, width])
             .padding(0.12);
 
+        // Axes
+        svg.append('g').call(d3.axisLeft(yScale).ticks(6))
+            .style('font-family', 'Roboto Slab, serif').style('font-size', '11px');
+
         svg.append('g')
             .attr('transform', `translate(0,${height})`)
             .call(d3.axisBottom(xScale))
-            .selectAll('text')
-            .style('font-size', '12px')
-            .style('font-family', 'Roboto Slab, serif');
+            .style('font-family', 'Roboto Slab, serif').style('font-size', '12px');
 
+        // Violin stats generation
         const histogram = d3.histogram()
             .domain(yScale.domain())
             .thresholds(yScale.ticks(30))
             .value(d => d);
 
+        let globalMaxCount = 0;
         const sumstat = yearData.map(d => {
             const bins = histogram(d.values);
-            let lastIdx = -1;
-            for (let i = 0; i < bins.length; i++) {
-                if (bins[i].length > 0) lastIdx = i;
+            // Trim trailing empty bins to avoid weird flat tops on violins
+            while (bins.length && bins[bins.length - 1].length === 0) {
+                 bins.pop();
             }
-            return {
-                key: d.year,
-                bins: lastIdx >= 0 ? bins.slice(0, lastIdx + 1) : [],
-                raw: d.values
-            };
-        });
+            const maxBin = d3.max(bins, b => b.length) || 0;
+            if (maxBin > globalMaxCount) globalMaxCount = maxBin;
 
-        let maxCount = 0;
-        sumstat.forEach(s => {
-            const m = d3.max(s.bins.map(b => b.length));
-            if (m > maxCount) maxCount = m;
+            return { key: d.year, bins, raw: d.values };
         });
 
         const xNum = d3.scaleLinear()
-            .domain([-maxCount, maxCount])
+            .domain([-globalMaxCount, globalMaxCount])
             .range([0, xScale.bandwidth()]);
 
-        const statsMap = new Map();
-        sumstat.forEach(s => {
-            const vals = s.raw;
-            statsMap.set(s.key, {
-                count: vals.length,
-                mean: d3.mean(vals).toFixed(2),
-                median: d3.median(vals).toFixed(2),
-                min: d3.min(vals).toFixed(2),
-                max: d3.max(vals).toFixed(2)
-            });
-        });
-
-        const groups = svg.selectAll('.violin')
+        // Draw violins
+        svg.selectAll('.violin')
             .data(sumstat)
-            .enter()
-            .append('g')
+            .join('g')
             .attr('class', 'violin')
-            .attr('transform', d => `translate(${xScale(d.key)},0)`);
+            .attr('transform', d => `translate(${xScale(d.key)},0)`)
+            .append('path')
+            .datum(d => d.bins)
+            .attr('d', d3.area()
+                .x0(b => xNum(-b.length))
+                .x1(b => xNum(b.length))
+                .y(b => yScale(b.x0))
+                .curve(d3.curveCatmullRom)
+            )
+            .style('fill', '#2a7700');
 
-        groups.each(function(d) {
-            if (!d.bins.length) return;
-            d3.select(this)
-                .append('path')
-                .datum(d.bins)
-                .attr('d', d3.area()
-                    .x0(b => xNum(-b.length))
-                    .x1(b => xNum(b.length))
-                    .y(b => yScale(b.x0))
-                    .curve(d3.curveCatmullRom)
-                )
-                .style('fill', '#2a7700ff')
-        });
+        // Tooltips & Interactions
+        const updateTooltip = (event, content = '') => {
+            const t = UI.tooltip;
+            if (!content) {
+                t.style('opacity', 0).style('display', 'none');
+                return;
+            }
+            
+            t.style('display', 'block').style('opacity', 1).html(content);
+            
+            const rect = t.node().getBoundingClientRect();
+            // Simple boundary check to keep tooltip on screen
+            const left = Math.min(event.pageX + 15, window.innerWidth + window.scrollX - rect.width - 15);
+            const top = Math.min(event.pageY + 15, window.innerHeight + window.scrollY - rect.height - 15);
+            t.style('left', `${left}px`).style('top', `${top}px`);
+        };
 
-        function updateTooltipPos(event) {
-            const rect = tooltip.node().getBoundingClientRect();
-            const vw = document.documentElement.clientWidth;
-            const vh = document.documentElement.clientHeight;
-            let adjX = event.pageX + 14;
-            let adjY = event.pageY + 16;
+        svg.selectAll('.violin')
+            .on('mouseover', (e, d) => {
+                const vals = d.raw;
+                const stats = {
+                    count: vals.length,
+                    median: d3.median(vals).toFixed(2),
+                    min: d3.min(vals).toFixed(2),
+                    max: d3.max(vals).toFixed(2)
+                };
+                updateTooltip(e, `<div class="text-center"><strong>${d.key}</strong></div>
+                    Samples: ${stats.count}<br/>Median: ${stats.median}<br/>Min: ${stats.min}<br/>Max: ${stats.max}`);
+            })
+            .on('mousemove', (e) => updateTooltip(e, UI.tooltip.html())) // refresh pos
+            .on('mouseleave', () => updateTooltip(null));
 
-            if (adjX + rect.width + 8 > window.scrollX + vw) adjX = vw - rect.width - 8;
-            if (adjY + rect.height + 8 > window.scrollY + vh) adjY = vh - rect.height - 8;
-
-            tooltip.style('left', adjX + 'px').style('top', adjY + 'px');
-        }
-
-        groups.on('mouseover', function(event, d) {
-            const s = statsMap.get(d.key);
-            tooltip.style('display', 'block').style('opacity', 1)
-                .html(`<div style="text-align: center;"><strong>${d.key}</strong></div>Samples: ${s.count}<br/>Median: ${s.median}<br/>Min: ${s.min}<br/>Max: ${s.max}`);
-            updateTooltipPos(event);
-        })
-        .on('mousemove', updateTooltipPos)
-        .on('mouseleave', () => tooltip.style('opacity', 0).style('display', 'none'));
-        svg.append('text').attr('transform', 'rotate(-90)').attr('x', -height / 2).attr('y', -45).attr('text-anchor', 'middle').style('font-size', '12px').style('font-family', 'Roboto Slab, serif').text(`Number of ${subType} per week`);
+        // Y-axis label
+        svg.append('text')
+            .attr('transform', 'rotate(-90)')
+            .attr('y', -45)
+            .attr('x', -height / 2)
+            .attr('text-anchor', 'middle')
+            .style('font-size', '12px')
+            .style('font-family', 'Roboto Slab, serif')
+            .text(`Number of ${subType} per week`);
     }
 
-    if (countrySelect) {
-        countrySelect.addEventListener('change', () => {
-            drawViolin(countrySelect.value, subTypeSelect.value);
-        });
-    }
-    if (subTypeSelect) {
-        subTypeSelect.addEventListener('change', () => {
-            drawViolin(countrySelect.value, subTypeSelect.value);
-        });
-    }
-
-    drawViolin(countrySelect?.value || 'Palestine', subTypeSelect?.value || 'Peaceful protest');
+    UI.countrySelect?.addEventListener('change', () => drawViolin(UI.countrySelect.value, UI.subTypeSelect.value));
+    UI.subTypeSelect?.addEventListener('change', () => drawViolin(UI.countrySelect.value, UI.subTypeSelect.value));
+    drawViolin(UI.countrySelect?.value || 'Palestine', UI.subTypeSelect?.value || 'Peaceful protest');
 }

@@ -5,7 +5,6 @@ function renderHistogramChart(container, datasets) {
 	let typeSelect = root.select('#histogram-type-select');
 	const titleEl = root.select('#histogram-title');
 
-	// === Tooltip ===
 	function ensureTooltip() {
 		let t = d3.select('#histogram-tooltip');
 		if (t.empty()) {
@@ -37,15 +36,12 @@ function renderHistogramChart(container, datasets) {
 		.attr('class', 'chart-root')
 		.attr('transform', `translate(${margin.left},${margin.top})`);
 
-	// === Pulizia e parsing dataset ===
 	const raw = datasets.meaAggregatedData || [];
 
-	// Usa lo stesso dataset anche come "countries" se non è fornito
 	const countriesSet = new Set(
 		(datasets.countries || raw).map(d => (d.Country || d.COUNTRY || '').trim())
 	);
 
-	// Pulizia e normalizzazione come in Python
 	const data = raw
 		.map(d => ({
 			country: ((d.COUNTRY || d.Country || '').trim()),
@@ -56,7 +52,6 @@ function renderHistogramChart(container, datasets) {
 		}))
 		.filter(d => d.year >= 2014 && d.year <= 2024 && countriesSet.has(d.country));
 
-	// === Popola select dinamiche ===
 	const allCountries = Array.from(new Set(data.map(d => d.country)));
 	const countries = allCountries.filter(c => c === 'Palestine' || c === 'Syria').sort((a, b) => a.localeCompare(b));
 	const allSubTypes = Array.from(new Set(data.map(d => d.subType)));
@@ -87,13 +82,11 @@ function renderHistogramChart(container, datasets) {
 		typeSelect.attr('data-populated', '1');
 	}
 
-	// === Scale e assi ===
 	const xScale = d3.scaleBand().range([0, width]).padding(0.25);
 	const yScale = d3.scaleLinear().range([height, 0]);
 	const xAxisG = g.append('g').attr('transform', `translate(0,${height})`);
 	const yAxisG = g.append('g');
 	
-	// Y-axis label (will be updated dynamically)
 	const yAxisLabel = g.append('text')
 		.attr('class', 'y-axis-label')
 		.attr('transform', 'rotate(-90)')
@@ -104,7 +97,6 @@ function renderHistogramChart(container, datasets) {
 	
 	const formatNum = d3.format(',');
 
-	// === Calcolo EventType per SubType ===
 	const subTypeEventTotals = d3.rollups(
 		data,
 		v =>
@@ -130,7 +122,6 @@ function renderHistogramChart(container, datasets) {
 		}
 	}
 
-	// === Calcolo serie annuale (come in Python) ===
 	function computeSeries(country, subType) {
 		const filtered = data.filter(d =>
 			d.country.toLowerCase().includes(country.toLowerCase()) &&
@@ -143,16 +134,12 @@ function renderHistogramChart(container, datasets) {
 		return d3.range(2014, 2025).map(y => ({ year: y, events: byYear.get(y) || 0 }));
 	}
 
-	// === Funzione di aggiornamento grafico ===
 	function update() {
 		const country = countrySelect.property('value');
 		const subType = typeSelect.property('value');
-		const eventType = subTypeToEventType.get(subType) || '';
-		// Usa un colore fisso per tutte le barre dell'istogramma
 		const barColor = '#1461a9ff';
 		titleEl.text(`${subType} events in ${country}`);
 		
-		// Update Y-axis label with the current sub-event type
 		yAxisLabel.text(`Total number of ${subType} per year`);
 		
 		const series = computeSeries(country, subType);
@@ -162,7 +149,6 @@ function renderHistogramChart(container, datasets) {
 
 		const bars = g.selectAll('.hist-bar').data(series, d => d.year);
 
-		// Enter
 		const barsEnter = bars.enter()
 			.append('rect')
 			.attr('class', 'hist-bar')
@@ -196,13 +182,11 @@ function renderHistogramChart(container, datasets) {
 			})
 			.on('mouseout', () => tooltip.style('opacity', 0).style('display', 'none'));
 
-		// Enter transition
 		barsEnter.transition()
 			.duration(800)
 			.attr('y', d => yScale(d.events))
 			.attr('height', d => height - yScale(d.events));
 
-		// Update transition
 		bars.transition()
 			.duration(600)
 			.attr('x', d => xScale(d.year))
@@ -210,8 +194,7 @@ function renderHistogramChart(container, datasets) {
 			.attr('y', d => yScale(d.events))
 			.attr('height', d => height - yScale(d.events))
 			.attr('fill', barColor);
-
-		// Exit transition
+			
 		bars.exit()
 			.transition()
 			.duration(400)

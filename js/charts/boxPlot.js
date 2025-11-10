@@ -38,7 +38,6 @@ function renderBoxPlotChart(container, datasets) {
         .attr('class', 'form-select form-select-sm');
     }
 
-    // Try to place the select right below any heading in or near the container
     let headingSel = root.select('#boxplot-title');
     if (headingSel.empty()) {
       headingSel = root.select('h1, h2, h3, h4, h5, h6');
@@ -113,8 +112,6 @@ function renderBoxPlotChart(container, datasets) {
     tooltip.style('opacity', 0).style('display', 'none');
   }
 
-  // --- Data normalization --------------------------------------------------
-
   const normalizeAggregated = d => ({
     country: (d.COUNTRY || d.Country || d.country || '').trim(),
     subEventType: (d.SUB_EVENT_TYPE || d.sub_event_type || '').trim(),
@@ -139,7 +136,7 @@ function renderBoxPlotChart(container, datasets) {
     countrySelect.property('value', 'Palestine');
     countrySelect.attr('data-populated', '1');
   }
-  // --- Box plot computation -----------------------------------------------
+
   const subEventTypes = [
     'Shelling/artillery/missile attack',
     'Air/drone strike',
@@ -184,8 +181,6 @@ function renderBoxPlotChart(container, datasets) {
     return { q1, median, q3, whiskerLow, whiskerHigh, min, max, outliers, count};
   }
 
-  // --- Scales & axes -------------------------------------------------------
-
   const xScale = d3
     .scaleBand()
     .range([0, width])
@@ -207,8 +202,6 @@ function renderBoxPlotChart(container, datasets) {
     .style('font-family', 'Roboto Slab, serif')
     .style('font-size', '13px')
     .text('Number of events per wee');
-
-  // --- Rendering -----------------------------------------------------------
 
   function update() {
     const selectedCountry =
@@ -319,7 +312,6 @@ function renderBoxPlotChart(container, datasets) {
       .attr('y2', d => yScale(d.stats.whiskerHigh))
       .attr('stroke', '#555');
 
-    // box body
     boxGroups
       .append('rect')
       .attr('x', boxCenter - boxBodyWidth / 2)
@@ -347,7 +339,6 @@ function renderBoxPlotChart(container, datasets) {
       })
       .on('mouseout blur', hideTooltip);
 
-    // median line
     boxGroups
       .append('line')
       .attr('x1', boxCenter - boxBodyWidth / 2)
@@ -357,7 +348,6 @@ function renderBoxPlotChart(container, datasets) {
       .attr('stroke', '#000')
       .attr('stroke-width', 1.5);
 
-    // outliers
     boxGroups.each(function (d) {
       const group = d3.select(this);
       const outliers = d.stats.outliers || [];
@@ -382,7 +372,6 @@ function renderBoxPlotChart(container, datasets) {
         .on('mouseout blur', hideTooltip);
     });
 
-    // y-axis title is static; keep text in case you want to localize later
     yAxisTitle.text('Number of events per week');
   }
 
