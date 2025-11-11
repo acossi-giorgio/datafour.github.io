@@ -187,7 +187,12 @@ function renderCirclePacking(container, datasets) {
       .attr('fill', d => (d.r > 22 ? '#fff' : '#111'))
       .transition().duration(600)
       .attr('font-size', d => Math.max(10, d.r * 0.35))
-      .on('end', function(event, d) { fitTextInCircle(this, d.data.country, d.r); });
+      .on('end', function() { 
+        const d = d3.select(this.parentNode).datum();
+        if (d && d.data && d.data.country) {
+          fitTextInCircle(this, d.data.country, d.r); 
+        }
+      });
 
     nodes.exit().transition().duration(300).style('opacity', 0).remove();
 
