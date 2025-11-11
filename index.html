@@ -4,17 +4,29 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Data Four</title>
+    
+    <!-- Resource Hints: preconnect per CDN per ridurre latenza DNS/TLS -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+    <link rel="preconnect" href="https://d3js.org" />
+    
+    <!-- Google Fonts con display=swap per evitare FOIT (Flash of Invisible Text) -->
     <link
       href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;600;700&family=Fira+Sans:wght@400;500;700&display=swap"
       rel="stylesheet"
     />
+    
+    <!-- Bootstrap CSS con SRI integrity per sicurezza e cache ottimale -->
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
       rel="stylesheet"
       integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
       crossorigin="anonymous"
     />
-    <link rel="stylesheet" href="style.css" />
+    
+    <!-- CSS locale con versioning per cache busting -->
+  <link rel="stylesheet" href="style.css?v=20251111" />
   </head>
 
   <body>
@@ -30,24 +42,33 @@
 
     <div id="footer-container"></div>
 
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script src="js/util/dataLoader.js"></script>
-    <script src="js/util/domManipulation.js"></script>
-    <script src="js/charts/groupedBar.js"></script>
-    <script src="js/charts/stacked100.js"></script>
-    <script src="js/charts/heatmap.js"></script>
-    <script src="js/charts/barHorizontal.js"></script>
-    <script src="js/charts/waffle.js"></script>
-    <script src="js/charts/circlePacking.js"></script>
-    <script src="js/charts/histogram.js"></script>
-    <script src="js/charts/boxPlot.js"></script>
-    <script src="js/charts/ridgeLine.js"></script>
-    <script src="js/main.js"></script>
-    <script src="js/util/common.js"></script>
+    <!-- D3.js library con SRI integrity e crossorigin per cache CDN sicura -->
+    <script 
+      src="https://d3js.org/d3.v7.min.js"
+      integrity="sha384-CjloA8y00+1SDAUkjs099PVfnY2KmDC2BZnws9kh8D/lX1s46w6EPhpXdqMfjK6i"
+      crossorigin="anonymous"
+      defer></script>
+    
+    <!-- Script locali con defer per caricamento parallelo non-bloccante -->
+  <script src="js/charts/groupedBar.js?v=20251111" defer></script>
+  <script src="js/charts/stacked100.js?v=20251111" defer></script>
+  <script src="js/charts/heatmap.js?v=20251111" defer></script>
+  <script src="js/charts/barHorizontal.js?v=20251111" defer></script>
+  <script src="js/charts/waffle.js?v=20251111" defer></script>
+  <script src="js/charts/circlePacking.js?v=20251111" defer></script>
+  <script src="js/charts/histogram.js?v=20251111" defer></script>
+  <script src="js/charts/violinPlot.js?v=20251111" defer></script>
+  <script src="js/charts/boxPlot.js?v=20251111" defer></script>
+  <script src="js/charts/ridgeLine.js?v=20251111" defer></script>
+  <script src="js/util/common.js?v=20251111" defer></script>
+  <script src="js/main.js?v=20251111" defer></script>
+    
+    <!-- Bootstrap Bundle con SRI integrity -->
     <script
       src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
       integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
       crossorigin="anonymous"
+      defer
     ></script>
   </body>
 </html>
