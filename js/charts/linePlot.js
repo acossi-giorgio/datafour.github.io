@@ -107,16 +107,17 @@ function renderLinePlotChart(container, datasets) {
 
   const eventById = new Map(EVENT_CONFIGS.map(d => [d.id, d]));
 
-  // --- Lista dei paesi (ricavata dal dataset delle dimostrazioni) ---
-  const demoData = datasets.demostrationEvents || [];
-  const allCountries = Array.from(
-    new Set(demoData.map(d => d.COUNTRY))
-  ).sort(d3.ascending);
-
-  if (allCountries.length === 0) {
-    console.warn("No countries found in demonstration events data");
-    return;
-  }
+  // --- Lista dei paesi da visualizzare ---
+  const allCountries = [
+    "Pakistan",
+    "Yemen",
+    "Morocco",
+    "Palestine",
+    "Iran",
+    "Syria",
+    "Israel",
+    "Iraq"
+  ].sort(d3.ascending);
 
   // Popola il select degli eventi
   eventSelect
@@ -167,6 +168,7 @@ function renderLinePlotChart(container, datasets) {
       d.COUNTRY &&
       d.YEAR != null &&
       d.EVENTS != null &&
+      allCountries.includes(d.COUNTRY) &&
       (!window.isYearInRange || window.isYearInRange(d.YEAR))
     );
 
@@ -263,85 +265,101 @@ function renderLinePlotChart(container, datasets) {
     }
 
     // --- Linee: tutte grigie, tranne il paese selezionato ---
-    const lineSel = linesG
-      .selectAll(".country-line")
-      .data(groupedData, d => d.country);
+const lineSel = linesG
+  .selectAll(".country-line")
+  .data(groupedData, d => d.country);
 
-    lineSel
-      .join("path")
-      .attr("class", "country-line")
-      .attr("fill", "none")
-      .attr("stroke-linecap", "round")
-      .attr("stroke-linejoin", "round")
-      .attr("d", d => lineGen(d.values))
-      .attr("stroke", d => 
-        d.country === currentCountry ? getCountryColor(d.country) : "#cccccc"
-      )
-      .attr("stroke-width", d =>
-        d.country === currentCountry ? 4 : 1.5
-      )
-      .attr("opacity", d =>
-        d.country === currentCountry ? 1 : 0.3
-      )
-      .style("cursor", d => d.country === currentCountry ? "default" : "pointer")
-      .on("mousemove", function (event, d) {
-        // Calcola statistiche per il tooltip
-        const minVal = d3.min(d.values, v => v.EVENTS);
-        const maxVal = d3.max(d.values, v => v.EVENTS);
-        const avgVal = Math.round(d3.mean(d.values, v => v.EVENTS));
-        const totalVal = d3.sum(d.values, v => v.EVENTS);
-        
-        showTooltip(
-          event,
-          `<strong>${d.country}</strong><br/>` +
-          `${cfg.label}<br/>` +
-          `Total: ${totalVal.toLocaleString()}<br/>` +
-          `Min: ${minVal} | Max: ${maxVal}<br/>` +
-          `Avg: ${avgVal}` +
-          (d.country !== currentCountry ? `<br/><em style="color: #ffd43b;">Click to select</em>` : '')
-        );
-        
-        // Evidenzia la linea al passaggio del mouse
-        if (d.country !== currentCountry) {
-          d3.select(this)
-            .attr("stroke-width", 2.5)
-            .attr("opacity", 0.6);
-        }
-      })
-      .on("mouseout", function (event, d) {
-        hideTooltip();
-        
-        // Ripristina lo stile originale
-        if (d.country !== currentCountry) {
-          d3.select(this)
-            .attr("stroke-width", 1.5)
-            .attr("opacity", 0.3);
-        }
-      })
-      .on("click", function (event, d) {
-        // Se clicco su una linea non selezionata, la seleziono
-        if (d.country !== currentCountry) {
-          currentCountry = d.country;
-          countrySelect.property("value", currentCountry);
-          updateChart();
-          hideTooltip();
-        }
-      });
+lineSel
+  .join("path")
+  .attr("class", "country-line")
+  .attr("fill", "none")
+  .attr("stroke-linecap", "round")
+  .attr("stroke-linejoin", "round")
+  .attr("d", d => lineGen(d.values))
+  .attr("stroke", d =>
+    d.country === currentCountry ? getCountryColor(d.country) : "#cccccc"
+  )
+  .attr("stroke-width", d =>
+    d.country === currentCountry ? 4 : 1.5
+  )
+  .attr("opacity", d =>
+    d.country === currentCountry ? 1 : 0.3
+  )
+  .style("cursor", d => d.country === currentCountry ? "default" : "pointer")
+  .on("mousemove", function (event, d) {
+    // statistiche per il tooltip, in stile “Samples / Median / Min / Max”
+    const samples = d.values.length;
+    const minVal  = d3.min(d.values, v => v.EVENTS);
+    const maxVal  = d3.max(d.values, v => v.EVENTS);
+    const median  = d3.median(d.values, v => v.EVENTS);
+    const firstYear = d3.min(d.values, v => v.YEAR);
+    const lastYear  = d3.max(d.values, v => v.YEAR);
+
+    showTooltip(
+      event,
+      `<strong>${d.country}</strong><br/>` +
+      `${firstYear}–${lastYear}<br/>` +
+      `Samples: ${samples}<br/>` +
+      `Median: ${median.toFixed(2)}<br/>` +
+      `Min: ${minVal}<br/>` +
+      `Max: ${maxVal}`
+    );
+
+    // piccola evidenziazione al passaggio
+    if (d.country !== currentCountry) {
+      d3.select(this)
+        .attr("stroke-width", 2.5)
+        .attr("opacity", 0.6);
+    }
+  })
+  .on("mouseout", function (event, d) {
+    hideTooltip();
+
+    if (d.country !== currentCountry) {
+      d3.select(this)
+        .attr("stroke-width", 1.5)
+        .attr("opacity", 0.3);
+    }
+  })
+  .on("click", function (event, d) {
+    if (d.country !== currentCountry) {
+      currentCountry = d.country;
+      countrySelect.property("value", currentCountry);
+      updateChart();
+      hideTooltip();
+    }
+  });
+
 
     // --- Etichette con nomi dei paesi alla fine delle linee ---
+    // Calcola le posizioni y finali e ordina per evitare sovrapposizioni
+    const labelData = groupedData.map(d => {
+      const lastPoint = d.values[d.values.length - 1];
+      return {
+        country: d.country,
+        x: xScale(lastPoint.YEAR) + 5,
+        y: yScale(lastPoint.EVENTS),
+        originalY: yScale(lastPoint.EVENTS)
+      };
+    }).sort((a, b) => a.y - b.y);
+
+    // Risolvi sovrapposizioni con algoritmo di separazione
+    const minSpacing = 14; // Spaziatura minima tra le etichette
+    for (let i = 1; i < labelData.length; i++) {
+      const prev = labelData[i - 1];
+      const curr = labelData[i];
+      if (curr.y - prev.y < minSpacing) {
+        curr.y = prev.y + minSpacing;
+      }
+    }
+
     linesG
       .selectAll(".country-label")
-      .data(groupedData, d => d.country)
+      .data(labelData, d => d.country)
       .join("text")
       .attr("class", "country-label")
-      .attr("x", d => {
-        const lastPoint = d.values[d.values.length - 1];
-        return xScale(lastPoint.YEAR) + 5;
-      })
-      .attr("y", d => {
-        const lastPoint = d.values[d.values.length - 1];
-        return yScale(lastPoint.EVENTS);
-      })
+      .attr("x", d => d.x)
+      .attr("y", d => d.y)
       .attr("dy", "0.35em")
       .attr("font-size", d => d.country === currentCountry ? 12 : 10)
       .attr("font-weight", d => d.country === currentCountry ? "bold" : "normal")
