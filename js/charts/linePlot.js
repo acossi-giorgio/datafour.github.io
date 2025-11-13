@@ -62,7 +62,7 @@ function renderLinePlotChart(container, datasets) {
     tooltip.style('opacity', 0).style('display', 'none');
   }
 
-  const margin = { top: 30, right: 40, bottom: 50, left: 100 };
+  const margin = { top: 30, right: 80, bottom: 50, left: 100 };
   const fullWidth = Math.max(svg.attr('width') || 900, 300);
   const fullHeight = Math.max(svg.attr('height') || 500, 330);
   const width = fullWidth - margin.left - margin.right;
@@ -265,6 +265,24 @@ function renderLinePlotChart(container, datasets) {
     }
 
     // --- Linee: tutte grigie, tranne il paese selezionato ---
+    // Prima disegna le linee di sfondo grigie per il paese selezionato
+    const backgroundLines = linesG
+      .selectAll(".country-line-background")
+      .data(groupedData.filter(d => d.country === currentCountry), d => d.country);
+
+    backgroundLines
+      .join("path")
+      .attr("class", "country-line-background")
+      .attr("fill", "none")
+      .attr("stroke", "#cccccc")
+      .attr("stroke-width", 4)
+      .attr("stroke-linecap", "round")
+      .attr("stroke-linejoin", "round")
+      .attr("opacity", 0.4)
+      .attr("d", d => lineGen(d.values))
+      .style("pointer-events", "none");
+
+    // Poi disegna le linee principali sopra
 const lineSel = linesG
   .selectAll(".country-line")
   .data(groupedData, d => d.country);
@@ -285,7 +303,34 @@ lineSel
   .attr("opacity", d =>
     d.country === currentCountry ? 1 : 0.3
   )
-  .style("cursor", d => d.country === currentCountry ? "default" : "pointer")
+  .style("cursor", "pointer")
+  .each(function(d) {
+    // Calcola la lunghezza del path per l'animazione
+    const pathLength = this.getTotalLength();
+    d3.select(this).attr("data-length", pathLength);
+    
+    // Se è il paese selezionato e non è già stato animato, anima
+    if (d.country === currentCountry && !d3.select(this).classed("animated")) {
+      d3.select(this)
+        .attr("stroke-dasharray", pathLength)
+        .attr("stroke-dashoffset", pathLength)
+        .classed("animated", true)
+        .transition()
+        .duration(1500)
+        .ease(d3.easeLinear)
+        .attr("stroke-dashoffset", 0)
+        .on("end", function() {
+          // Rimuovi stroke-dasharray dopo l'animazione per rendering normale
+          d3.select(this).attr("stroke-dasharray", "none");
+        });
+    } else {
+      // Reset per linee non selezionate
+      d3.select(this)
+        .attr("stroke-dasharray", "none")
+        .attr("stroke-dashoffset", 0)
+        .classed("animated", false);
+    }
+  })
   .on("mousemove", function (event, d) {
     // statistiche per il tooltip, in stile “Samples / Median / Min / Max”
     const samples = d.values.length;
@@ -366,7 +411,29 @@ lineSel
       .attr("fill", d => d.country === currentCountry ? getCountryColor(d.country) : "#999")
       .attr("opacity", d => d.country === currentCountry ? 1 : 0.5)
       .text(d => d.country)
-      .style("pointer-events", "none");
+      .style("pointer-events", d => d.country === currentCountry ? "none" : "auto")
+      .style("cursor", d => d.country === currentCountry ? "default" : "pointer")
+      .on("click", function(event, d) {
+        if (d.country !== currentCountry) {
+          currentCountry = d.country;
+          countrySelect.property("value", currentCountry);
+          updateChart();
+        }
+      })
+      .on("mouseover", function(event, d) {
+        if (d.country !== currentCountry) {
+          d3.select(this)
+            .attr("opacity", 0.8)
+            .attr("font-size", 11);
+        }
+      })
+      .on("mouseout", function(event, d) {
+        if (d.country !== currentCountry) {
+          d3.select(this)
+            .attr("opacity", 0.5)
+            .attr("font-size", 10);
+        }
+      });
 
     // --- Trova i dati del paese selezionato ---
     const selectedCountryData = groupedData.find(d => d.country === currentCountry);
