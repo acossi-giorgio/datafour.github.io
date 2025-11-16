@@ -117,6 +117,7 @@ function renderLinePlotChart(container, datasets) {
   // Stato iniziale
   let currentEventId = EVENT_CONFIGS[0].id;
   let currentCountry = allCountries[0];
+  let selectedYear = null; // Anno selezionato per il confronto verticale
 
   eventSelect.property("value", currentEventId);
   countrySelect.property("value", currentCountry);
@@ -139,6 +140,8 @@ function renderLinePlotChart(container, datasets) {
 
   const linesG = g.append("g").attr("class", "lines");
   const pointsG = g.append("g").attr("class", "points");
+  const verticalLineG = g.append("g").attr("class", "vertical-line-group");
+  const comparisonPointsG = g.append("g").attr("class", "comparison-points");
 
   // Prende il dataset giusto e lo raggruppa per paese
   function getFilteredData(eventId) {
@@ -567,8 +570,112 @@ lineSel
             .attr("opacity", 0.7);
           
           hideTooltip();
+        })
+        .on("click", function (event, d) {
+          event.stopPropagation();
+          // Toggle: se clicco sullo stesso anno, deseleziono
+          if (selectedYear === d.YEAR) {
+            selectedYear = null;
+          } else {
+            selectedYear = d.YEAR;
+          }
+          updateVerticalLine();
         });
     }
+
+    // Funzione per aggiornare la linea verticale e i punti di confronto
+    function updateVerticalLine() {
+      verticalLineG.selectAll("*").remove();
+      comparisonPointsG.selectAll("*").remove();
+
+      if (selectedYear === null) return;
+
+      const x = xScale(selectedYear);
+
+      // Disegna la linea verticale tratteggiata rossa
+      verticalLineG
+        .append("line")
+        .attr("class", "comparison-vertical-line")
+        .attr("x1", x)
+        .attr("x2", x)
+        .attr("y1", 0)
+        .attr("y2", height)
+        .attr("stroke", "#000")
+        .attr("stroke-width", 1)
+        .attr("stroke-dasharray", "6,4")
+        .attr("opacity", 0.6);
+
+      // Aggiungi etichetta anno sulla linea
+      verticalLineG
+        .append("text")
+        .attr("x", x)
+        .attr("y", -10)
+        .attr("text-anchor", "middle")
+        .attr("font-size", 12)
+        .attr("font-weight", "bold")
+        .attr("fill", "#dc3545")
+        .text(selectedYear);
+
+      // Raccogli tutti i valori per quell'anno da tutti i paesi
+      const yearData = expandedData
+        .map(d => {
+          const point = d.values.find(v => v.YEAR === selectedYear);
+          return point ? { country: d.country, ...point } : null;
+        })
+        .filter(d => d !== null);
+
+      // Disegna i punti di confronto per tutti i paesi
+      comparisonPointsG
+        .selectAll(".comparison-point")
+        .data(yearData)
+        .join("circle")
+        .attr("class", "comparison-point")
+        .attr("cx", x)
+        .attr("cy", d => yScale(d.EVENTS))
+        .attr("r", 5)
+        .attr("fill", d => getCountryColor(d.country))
+        .attr("stroke", "#000")
+        .attr("stroke-width", 1)
+        .attr("opacity", 0.9)
+        .style("cursor", "pointer")
+        .on("mouseenter", function (event, d) {
+          d3.select(this)
+            .attr("r", 7)
+            .attr("stroke-width", 2);
+          
+          showTooltip(
+            event,
+            `<div style="text-align: center;"><strong>${d.country}</strong></div>` +
+            `<strong>Year:</strong> ${d.YEAR}<br/>` +
+            `<strong>${cfg.label}:</strong> ${d.EVENTS.toLocaleString()}`
+          );
+        })
+        .on("mousemove", function (event, d) {
+          showTooltip(
+            event,
+            `<div style="text-align: center;"><strong>${d.country}</strong></div>` +
+            `<strong>Year:</strong> ${d.YEAR}<br/>` +
+            `<strong>${cfg.label}:</strong> ${d.EVENTS.toLocaleString()}`
+          );
+        })
+        .on("mouseleave", function () {
+          d3.select(this)
+            .attr("r", 5)
+            .attr("stroke-width", 1);
+          hideTooltip();
+        })
+        .on("click", function (event, d) {
+          event.stopPropagation();
+          if (d.country !== currentCountry) {
+            currentCountry = d.country;
+            countrySelect.property("value", currentCountry);
+            updateChart();
+          }
+        });
+    }
+
+    // Inizializza la linea verticale se c'è un anno selezionato
+    updateVerticalLine();
 
     // --- Testo di story sotto il grafico ---
     if (!storyEl.empty() && selectedCountryData && selectedCountryData.values.length) {
@@ -588,12 +695,21 @@ lineSel
   // --- Event handlers dei menu a tendina ---
   eventSelect.on("change", function () {
     currentEventId = this.value;
+    selectedYear = null; // Reset anno selezionato quando cambia evento
     updateChart();
   });
 
   countrySelect.on("change", function () {
     currentCountry = this.value;
     updateChart();
+  });
+
+  // Click sul background SVG per deselezionare l'anno
+  svg.on("click", function (event) {
+    if (event.target === this || event.target.tagName === 'rect') {
+      selectedYear = null;
+      updateChart();
+    }
   });
 
   // Primo draw
