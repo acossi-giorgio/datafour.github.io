@@ -20,19 +20,10 @@ function renderLinePlotChart(container, datasets) {
 
   tooltip
     .classed('chart-tooltip', true)
-    .style('position', 'fixed')
+    .style('position', 'absolute')
     .style('pointer-events', 'none')
     .style('display', 'none')
-    .style('opacity', 0)
-    .style('background', 'rgba(0, 0, 0, 0.9)')
-    .style('color', '#fff')
-    .style('padding', '8px 12px')
-    .style('border-radius', '4px')
-    .style('font-size', '12px')
-    .style('font-family', 'sans-serif')
-    .style('z-index', 10000)
-    .style('white-space', 'nowrap')
-    .style('box-shadow', '0 2px 8px rgba(0,0,0,0.3)');
+    .style('opacity', 0);
 
   function showTooltip(event, html) {
     tooltip
@@ -40,20 +31,8 @@ function renderLinePlotChart(container, datasets) {
       .style('opacity', 1)
       .html(html);
 
-    const rect = tooltip.node().getBoundingClientRect();
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-
-    let x = event.pageX + 14;
-    let y = event.pageY + 16;
-
-    // Evita che il tooltip esca dai bordi
-    if (x + rect.width > vw - 8) {
-      x = event.pageX - rect.width - 14;
-    }
-    if (y + rect.height > vh - 8) {
-      y = event.pageY - rect.height - 14;
-    }
+    const x = event.pageX + 14;
+    const y = event.pageY + 16;
 
     tooltip.style('left', `${x}px`).style('top', `${y}px`);
   }
@@ -173,10 +152,14 @@ function renderLinePlotChart(container, datasets) {
     );
 
     const grouped = d3.group(data, d => d.COUNTRY);
-    return Array.from(grouped, ([country, values]) => ({
-      country,
-      values: values.sort((a, b) => d3.ascending(a.YEAR, b.YEAR)),
-    }));
+    return Array.from(grouped, ([country, values]) => {
+      const sorted = values.sort((a, b) => d3.ascending(a.YEAR, b.YEAR));
+      return {
+        country,
+        values: sorted,
+        originalValues: sorted // Mantieni i valori originali separati
+      };
+    });
   }
 
   // Identifica i punti di cambio direzione (massimi e minimi locali)
@@ -225,6 +208,29 @@ function renderLinePlotChart(container, datasets) {
     const maxEvents = d3.max(allEvents);
     yScale.domain([0, maxEvents || 1]).nice();
 
+    // Espandi i dati per includere anni mancanti all'inizio con valori del primo anno disponibile
+    const expandedData = groupedData.map(d => {
+      const firstYear = d.values[0].YEAR;
+      const firstValue = d.values[0].EVENTS;
+      const missingYears = [];
+      
+      // Aggiungi punti fantasma per gli anni mancanti all'inizio
+      for (let y = yearExtent[0]; y < firstYear; y++) {
+        missingYears.push({
+          YEAR: y,
+          EVENTS: firstValue,
+          COUNTRY: d.country,
+          isFilled: true // Flag per identificare i punti aggiunti
+        });
+      }
+      
+      return {
+        ...d,
+        allValues: [...missingYears, ...d.values], // Valori completi con anni mancanti
+        filledYears: missingYears.map(m => m.YEAR) // Traccia quali anni sono stati riempiti
+      };
+    });
+
     // Assi
     xAxisG
       .call(
@@ -268,7 +274,7 @@ function renderLinePlotChart(container, datasets) {
     // Prima disegna le linee di sfondo grigie per il paese selezionato
     const backgroundLines = linesG
       .selectAll(".country-line-background")
-      .data(groupedData.filter(d => d.country === currentCountry), d => d.country);
+      .data(expandedData.filter(d => d.country === currentCountry), d => d.country);
 
     backgroundLines
       .join("path")
@@ -283,9 +289,9 @@ function renderLinePlotChart(container, datasets) {
       .style("pointer-events", "none");
 
     // Poi disegna le linee principali sopra
-const lineSel = linesG
-  .selectAll(".country-line")
-  .data(groupedData, d => d.country);
+    const lineSel = linesG
+      .selectAll(".country-line")
+      .data(expandedData, d => d.country);
 
 lineSel
   .join("path")
@@ -375,10 +381,71 @@ lineSel
     }
   });
 
+    // Linee tratteggiate per gli anni riempiti all'inizio
+    const dashedLines = linesG
+      .selectAll(".country-line-dashed")
+      .data(expandedData.filter(d => d.filledYears.length > 0), d => d.country);
+
+    dashedLines
+      .join("path")
+      .attr("class", "country-line-dashed")
+      .attr("fill", "none")
+      .attr("stroke-linecap", "round")
+      .attr("stroke-linejoin", "round")
+      .attr("stroke-dasharray", "5,5")
+      .attr("d", d => lineGen(d.allValues.filter(v => v.isFilled || v.YEAR === d.values[0].YEAR)))
+      .attr("stroke", d =>
+        d.country === currentCountry ? getCountryColor(d.country) : "#cccccc"
+      )
+      .attr("stroke-width", d =>
+        d.country === currentCountry ? 2 : 1
+      )
+      .attr("opacity", d =>
+        d.country === currentCountry ? 0.6 : 0.2
+      )
+      .style("pointer-events", "none");
+
+    // --- Linee tratteggiate per estensione fino al bordo destro ---
+    const extensionLines = linesG
+      .selectAll(".country-line-extension")
+      .data(expandedData.filter(d => {
+        // Solo per paesi che non arrivano all'anno massimo
+        const lastYear = d.values[d.values.length - 1].YEAR;
+        return lastYear < yearExtent[1];
+      }), d => d.country);
+
+    extensionLines
+      .join("line")
+      .attr("class", "country-line-extension")
+      .attr("x1", d => {
+        const lastPoint = d.values[d.values.length - 1];
+        return xScale(lastPoint.YEAR);
+      })
+      .attr("y1", d => {
+        const lastPoint = d.values[d.values.length - 1];
+        return yScale(lastPoint.EVENTS);
+      })
+      .attr("x2", xScale(yearExtent[1]))
+      .attr("y2", d => {
+        const lastPoint = d.values[d.values.length - 1];
+        return yScale(lastPoint.EVENTS);
+      })
+      .attr("stroke", d => 
+        d.country === currentCountry ? getCountryColor(d.country) : "#cccccc"
+      )
+      .attr("stroke-width", d => 
+        d.country === currentCountry ? 2 : 1
+      )
+      .attr("stroke-dasharray", "5,5")
+      .attr("opacity", d => 
+        d.country === currentCountry ? 0.5 : 0.2
+      )
+      .style("pointer-events", "none");
+
 
     // --- Etichette con nomi dei paesi alla fine delle linee ---
     // Calcola le posizioni y finali e ordina per evitare sovrapposizioni
-    const labelData = groupedData.map(d => {
+    const labelData = expandedData.map(d => {
       const lastPoint = d.values[d.values.length - 1];
       return {
         country: d.country,
@@ -436,26 +503,47 @@ lineSel
       });
 
     // --- Trova i dati del paese selezionato ---
-    const selectedCountryData = groupedData.find(d => d.country === currentCountry);
+    const selectedCountryData = expandedData.find(d => d.country === currentCountry);
 
     // --- Punti di cambio direzione (massimi e minimi locali) per il paese selezionato ---
     pointsG.selectAll("*").remove();
     
     if (selectedCountryData) {
       // Punti dati interattivi per tutti i valori del paese selezionato
-      // Cerchi invisibili per mostrare tooltip senza elementi visibili
+      // Aggiungi cerchi visibili
       pointsG
-        .selectAll(".data-point")
+        .selectAll(".data-point-visible")
         .data(selectedCountryData.values)
         .join("circle")
-        .attr("class", "data-point")
+        .attr("class", "data-point-visible")
         .attr("cx", d => xScale(d.YEAR))
         .attr("cy", d => yScale(d.EVENTS))
-        .attr("r", 6)
+        .attr("r", 4)
+        .attr("fill", getCountryColor(currentCountry))
+        .attr("stroke", "#fff")
+        .attr("stroke-width", 1.5)
+        .attr("opacity", 0.7)
+        .style("pointer-events", "none");
+
+      // Aggiungi cerchi invisibili più grandi per catturare il mouse
+      pointsG
+        .selectAll(".data-point-hitarea")
+        .data(selectedCountryData.values)
+        .join("circle")
+        .attr("class", "data-point-hitarea")
+        .attr("cx", d => xScale(d.YEAR))
+        .attr("cy", d => yScale(d.EVENTS))
+        .attr("r", 12)
         .attr("fill", "transparent")
         .attr("stroke", "none")
         .style("cursor", "pointer")
-        .on("mouseover", function (event, d) {
+        .on("mouseenter", function (event, d) {
+          // Trova il cerchio visibile corrispondente
+          const index = selectedCountryData.values.indexOf(d);
+          d3.select(pointsG.selectAll(".data-point-visible").nodes()[index])
+            .attr("r", 6)
+            .attr("opacity", 1);
+          
           showTooltip(
             event,
             `<div style="text-align: center;"><strong>${currentCountry}</strong></div>` +
@@ -471,7 +559,13 @@ lineSel
             `<strong>${cfg.label}:</strong> ${d.EVENTS.toLocaleString()}`
           );
         })
-        .on("mouseout", function () {
+        .on("mouseleave", function (event, d) {
+          // Ripristina il cerchio visibile
+          const index = selectedCountryData.values.indexOf(d);
+          d3.select(pointsG.selectAll(".data-point-visible").nodes()[index])
+            .attr("r", 4)
+            .attr("opacity", 0.7);
+          
           hideTooltip();
         });
     }
