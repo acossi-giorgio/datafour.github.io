@@ -1,45 +1,38 @@
 function renderLinePlotChart(container, datasets) {
-  const TOOLTIP_ID = 'lineplot-tooltip';
-  
   const root = d3.select(container);
-  if (root.empty()) return;
-
   const svg = root.select("#lineplot-svg");
-  if (svg.empty()) return;
+  
+  if (root.empty() || svg.empty()) return;
 
-  // Seleziona gli elementi dei controlli
   const eventSelect = d3.select("#lineplot-year-select");
   const countrySelect = d3.select("#lineplot-country-select");
   const storyEl = d3.select("#lineplot-story");
-
-  // Crea o recupera il tooltip centralizzato
+  
+  const TOOLTIP_ID = 'lineplot-tooltip';
   let tooltip = d3.select(`#${TOOLTIP_ID}`);
+  
   if (tooltip.empty()) {
-    tooltip = d3.select('body').append('div').attr('id', TOOLTIP_ID);
+    tooltip = d3.select('body').append('div')
+      .attr('id', TOOLTIP_ID)
+      .attr('class', 'chart-tooltip')
+      .style('position', 'absolute')
+      .style('pointer-events', 'none')
+      .style('display', 'none')
+      .style('opacity', 0);
   }
 
-  tooltip
-    .classed('chart-tooltip', true)
-    .style('position', 'absolute')
-    .style('pointer-events', 'none')
-    .style('display', 'none')
-    .style('opacity', 0);
-
-  function showTooltip(event, html) {
+  const updateTooltip = (show, event, content) => {
+    if (!show) {
+      tooltip.style('opacity', 0).style('display', 'none');
+      return;
+    }
     tooltip
       .style('display', 'block')
       .style('opacity', 1)
-      .html(html);
-
-    const x = event.pageX + 14;
-    const y = event.pageY + 16;
-
-    tooltip.style('left', `${x}px`).style('top', `${y}px`);
-  }
-
-  function hideTooltip() {
-    tooltip.style('opacity', 0).style('display', 'none');
-  }
+      .html(content)
+      .style('left', `${event.pageX + 14}px`)
+      .style('top', `${event.pageY + 16}px`);
+  };
 
   const margin = { top: 30, right: 80, bottom: 50, left: 100 };
   const fullWidth = Math.max(svg.attr('width') || 900, 300);
@@ -54,422 +47,230 @@ function renderLinePlotChart(container, datasets) {
     .style('height', 'auto');
 
   svg.selectAll('g.chart-root').remove();
-
-  const g = svg
-    .append('g')
+  const g = svg.append('g')
     .attr('class', 'chart-root')
     .attr('transform', `translate(${margin.left},${margin.top})`);
 
-  // --- Configurazione dei dataset selezionabili dal menu "Events" ---
+  const linesLayer = g.append("g").attr("class", "lines");
+  const pointsLayer = g.append("g").attr("class", "points");
+  const verticalLineLayer = g.append("g").attr("class", "vertical-line-group");
+  const comparisonPointsLayer = g.append("g").attr("class", "comparison-points");
+
+  const xAxisG = g.append("g").attr("class", "x-axis").attr("transform", `translate(0,${height})`);
+  const yAxisG = g.append("g").attr("class", "y-axis");
+
+  g.append("text")
+    .attr("class", "x-label")
+    .attr("x", width / 2)
+    .attr("y", height + 45)
+    .attr("text-anchor", "middle")
+    .attr("font-size", 13)
+    .attr("font-weight", "bold")
+    .text("Year");
+
+  g.append("text")
+    .attr("class", "y-label")
+    .attr("transform", "rotate(-90)")
+    .attr("x", -height / 2)
+    .attr("y", -75)
+    .attr("text-anchor", "middle")
+    .attr("font-size", 13)
+    .attr("font-weight", "bold")
+    .text("Number of Events");
+
   const EVENT_CONFIGS = [
-    {
-      id: "demostrationEvents",
-      label: "Demonstration events",
-      colorKey: DATASET_KEYS.DEMONSTRATIONS,
-    },
-    {
-      id: "politicalViolenceEvents",
-      label: "Political violence events",
-      colorKey: DATASET_KEYS.POLITICAL_VIOLENCE,
-    },
-    {
-      id: "targetingCiviliansEvents",
-      label: "Events targeting civilians",
-      colorKey: DATASET_KEYS.TARGET_CIVIL_EVENT,
-    },
-    {
-      id: "civilianFatalities",
-      label: "Reported civilian fatalities",
-      colorKey: DATASET_KEYS.CIVILIAN_FATALITIES,
-    },
+    { id: "demostrationEvents", label: "Demonstration events", colorKey: DATASET_KEYS.DEMONSTRATIONS },
+    { id: "politicalViolenceEvents", label: "Political violence events", colorKey: DATASET_KEYS.POLITICAL_VIOLENCE },
+    { id: "targetingCiviliansEvents", label: "Events targeting civilians", colorKey: DATASET_KEYS.TARGET_CIVIL_EVENT },
+    { id: "civilianFatalities", label: "Reported civilian fatalities", colorKey: DATASET_KEYS.CIVILIAN_FATALITIES },
   ];
 
+  const allCountries = ["Pakistan", "Yemen", "Morocco", "Palestine", "Iran", "Syria", "Israel", "Iraq"].sort(d3.ascending);
   const eventById = new Map(EVENT_CONFIGS.map(d => [d.id, d]));
 
-  // --- Lista dei paesi da visualizzare ---
-  const allCountries = [
-    "Pakistan",
-    "Yemen",
-    "Morocco",
-    "Palestine",
-    "Iran",
-    "Syria",
-    "Israel",
-    "Iraq"
-  ].sort(d3.ascending);
+  const populateSelect = (sel, data, valFn, txtFn) => 
+    sel.selectAll("option").data(data).join("option").attr("value", valFn).text(txtFn);
 
-  // Popola il select degli eventi
-  eventSelect
-    .selectAll("option")
-    .data(EVENT_CONFIGS)
-    .join("option")
-    .attr("value", d => d.id)
-    .text(d => d.label);
+  populateSelect(eventSelect, EVENT_CONFIGS, d => d.id, d => d.label);
+  populateSelect(countrySelect, allCountries, d => d, d => d);
 
-  // Popola il select dei paesi
-  countrySelect
-    .selectAll("option")
-    .data(allCountries)
-    .join("option")
-    .attr("value", d => d)
-    .text(d => d);
-
-  // Stato iniziale
   let currentEventId = EVENT_CONFIGS[0].id;
   let currentCountry = allCountries[0];
-  let selectedYear = null; // Anno selezionato per il confronto verticale
+  let selectedYear = null;
 
   eventSelect.property("value", currentEventId);
   countrySelect.property("value", currentCountry);
 
-  // --- Scale & assi (aggiornati ad ogni redraw) ---
   const xScale = d3.scaleLinear().range([0, width]);
   const yScale = d3.scaleLinear().range([height, 0]);
-
-  const xAxisG = g
-    .append("g")
-    .attr("class", "x-axis")
-    .attr("transform", `translate(0,${height})`);
-
-  const yAxisG = g.append("g").attr("class", "y-axis");
-
   const lineGen = d3.line()
     .x(d => xScale(d.YEAR))
     .y(d => yScale(d.EVENTS))
     .defined(d => d.YEAR != null && d.EVENTS != null);
 
-  const linesG = g.append("g").attr("class", "lines");
-  const pointsG = g.append("g").attr("class", "points");
-  const verticalLineG = g.append("g").attr("class", "vertical-line-group");
-  const comparisonPointsG = g.append("g").attr("class", "comparison-points");
-
-  // Prende il dataset giusto e lo raggruppa per paese
-  function getFilteredData(eventId) {
+  function processData(eventId) {
     const raw = datasets[eventId] || [];
-    let data = raw.filter(d =>
-      d.COUNTRY &&
-      d.YEAR != null &&
-      d.EVENTS != null &&
-      allCountries.includes(d.COUNTRY) &&
+    const filtered = raw.filter(d => 
+      d.COUNTRY && d.YEAR != null && d.EVENTS != null && 
+      allCountries.includes(d.COUNTRY) && 
       (!window.isYearInRange || window.isYearInRange(d.YEAR))
     );
 
-    const grouped = d3.group(data, d => d.COUNTRY);
-    return Array.from(grouped, ([country, values]) => {
+    if (!filtered.length) return { grouped: [], yearExtent: [0, 0], maxEvents: 0 };
+
+    const yearExtent = d3.extent(filtered, d => d.YEAR);
+    const maxEvents = d3.max(filtered, d => d.EVENTS) || 1;
+
+    const grouped = Array.from(d3.group(filtered, d => d.COUNTRY), ([country, values]) => {
       const sorted = values.sort((a, b) => d3.ascending(a.YEAR, b.YEAR));
+      const firstDataPoint = sorted[0];
+      
+      const missingYears = d3.range(yearExtent[0], firstDataPoint.YEAR).map(y => ({
+        YEAR: y,
+        EVENTS: firstDataPoint.EVENTS,
+        COUNTRY: country,
+        isFilled: true
+      }));
+
       return {
         country,
         values: sorted,
-        originalValues: sorted // Mantieni i valori originali separati
+        allValues: [...missingYears, ...sorted],
+        filledYears: missingYears.map(m => m.YEAR)
       };
     });
-  }
 
-  // Identifica i punti di cambio direzione (massimi e minimi locali)
-  function findTurningPoints(values) {
-    if (values.length < 3) return [];
-    
-    const turningPoints = [];
-    for (let i = 1; i < values.length - 1; i++) {
-      const prev = values[i - 1].EVENTS;
-      const curr = values[i].EVENTS;
-      const next = values[i + 1].EVENTS;
-      
-      // Massimo locale
-      if (curr > prev && curr > next) {
-        turningPoints.push({
-          ...values[i],
-          type: "max",
-          index: i
-        });
-      }
-      // Minimo locale
-      if (curr < prev && curr < next) {
-        turningPoints.push({
-          ...values[i],
-          type: "min",
-          index: i
-        });
-      }
-    }
-    return turningPoints;
+    return { grouped, yearExtent, maxEvents };
   }
 
   function updateChart() {
-    const cfg = eventById.get(currentEventId);
-    const colorHighlight = cfg ? getDatasetColor(cfg.colorKey) : "#333";
+    const eventConfig = eventById.get(currentEventId);
+    const { grouped: data, yearExtent, maxEvents } = processData(currentEventId);
+    
+    if (!data.length) return;
 
-    const groupedData = getFilteredData(currentEventId);
-    if (!groupedData.length) return;
-
-    const allYears = groupedData.flatMap(d => d.values.map(v => v.YEAR));
-    const allEvents = groupedData.flatMap(d => d.values.map(v => v.EVENTS));
-
-    const yearExtent = d3.extent(allYears);
     xScale.domain(yearExtent);
+    yScale.domain([0, maxEvents]).nice();
 
-    const maxEvents = d3.max(allEvents);
-    yScale.domain([0, maxEvents || 1]).nice();
+    xAxisG.call(d3.axisBottom(xScale).ticks(Math.min(yearExtent[1] - yearExtent[0] + 1, 10)).tickFormat(d3.format("d")))
+      .selectAll("text").attr("font-size", 12);
+    yAxisG.call(d3.axisLeft(yScale).ticks(5))
+      .selectAll("text").attr("font-size", 12);
 
-    // Espandi i dati per includere anni mancanti all'inizio con valori del primo anno disponibile
-    const expandedData = groupedData.map(d => {
-      const firstYear = d.values[0].YEAR;
-      const firstValue = d.values[0].EVENTS;
-      const missingYears = [];
-      
-      // Aggiungi punti fantasma per gli anni mancanti all'inizio
-      for (let y = yearExtent[0]; y < firstYear; y++) {
-        missingYears.push({
-          YEAR: y,
-          EVENTS: firstValue,
-          COUNTRY: d.country,
-          isFilled: true // Flag per identificare i punti aggiunti
-        });
-      }
-      
-      return {
-        ...d,
-        allValues: [...missingYears, ...d.values], // Valori completi con anni mancanti
-        filledYears: missingYears.map(m => m.YEAR) // Traccia quali anni sono stati riempiti
-      };
+    const getLineAttrs = (c, isActive) => ({
+      stroke: isActive ? getCountryColor(c) : "#cccccc",
+      width: isActive ? (c === currentCountry ? 4 : 2) : (c === currentCountry ? 1.5 : 1),
+      opacity: isActive ? 1 : (c === currentCountry ? 0.3 : 0.2) 
     });
 
-    // Assi
-    xAxisG
-      .call(
-        d3.axisBottom(xScale)
-          .ticks(Math.min(yearExtent[1] - yearExtent[0] + 1, 10))
-          .tickFormat(d3.format("d"))
-      )
-      .selectAll("text")
-      .attr("font-size", 12);
+    const backgroundLines = linesLayer.selectAll(".country-line-background")
+      .data(data.filter(d => d.country === currentCountry), d => d.country);
 
-    yAxisG
-      .call(d3.axisLeft(yScale).ticks(5))
-      .selectAll("text")
-      .attr("font-size", 12);
-
-    // Aggiungi etichette agli assi
-    if (!g.select(".x-label").node()) {
-      g.append("text")
-        .attr("class", "x-label")
-        .attr("x", width / 2)
-        .attr("y", height + 45)
-        .attr("text-anchor", "middle")
-        .attr("font-size", 13)
-        .attr("font-weight", "bold")
-        .text("Year");
-    }
-
-    if (!g.select(".y-label").node()) {
-      g.append("text")
-        .attr("class", "y-label")
-        .attr("transform", "rotate(-90)")
-        .attr("x", -height / 2)
-        .attr("y", -75)
-        .attr("text-anchor", "middle")
-        .attr("font-size", 13)
-        .attr("font-weight", "bold")
-        .text("Number of Events");
-    }
-
-    // --- Linee: tutte grigie, tranne il paese selezionato ---
-    // Prima disegna le linee di sfondo grigie per il paese selezionato
-    const backgroundLines = linesG
-      .selectAll(".country-line-background")
-      .data(expandedData.filter(d => d.country === currentCountry), d => d.country);
-
-    backgroundLines
-      .join("path")
+    backgroundLines.join("path")
       .attr("class", "country-line-background")
       .attr("fill", "none")
       .attr("stroke", "#cccccc")
       .attr("stroke-width", 4)
       .attr("stroke-linecap", "round")
-      .attr("stroke-linejoin", "round")
       .attr("opacity", 0.4)
       .attr("d", d => lineGen(d.values))
       .style("pointer-events", "none");
 
-    // Poi disegna le linee principali sopra
-    const lineSel = linesG
-      .selectAll(".country-line")
-      .data(expandedData, d => d.country);
+    linesLayer.selectAll(".country-line")
+      .data(data, d => d.country)
+      .join("path")
+      .attr("class", "country-line")
+      .attr("fill", "none")
+      .attr("stroke-linecap", "round")
+      .attr("d", d => lineGen(d.values))
+      .attr("stroke", d => getLineAttrs(d.country, d.country === currentCountry).stroke)
+      .attr("stroke-width", d => d.country === currentCountry ? 4 : 1.5)
+      .attr("opacity", d => d.country === currentCountry ? 1 : 0.3)
+      .style("cursor", "pointer")
+      .each(function(d) {
+        if (d.country === currentCountry && !d3.select(this).classed("animated")) {
+          const len = this.getTotalLength();
+          d3.select(this)
+            .attr("stroke-dasharray", len)
+            .attr("stroke-dashoffset", len)
+            .classed("animated", true)
+            .transition().duration(1500).ease(d3.easeLinear)
+            .attr("stroke-dashoffset", 0)
+            .on("end", function() { d3.select(this).attr("stroke-dasharray", "none"); });
+        } else if (d.country !== currentCountry) {
+          d3.select(this).attr("stroke-dasharray", "none").classed("animated", false);
+        }
+      })
+      .on("mousemove", function(event, d) {
+        const vals = d.values.map(v => v.EVENTS);
+        const stats = {
+          min: d3.min(vals),
+          max: d3.max(vals),
+          median: d3.median(vals),
+          first: d3.min(d.values, v => v.YEAR),
+          last: d3.max(d.values, v => v.YEAR)
+        };
+        
+        updateTooltip(true, event, 
+          `<strong>${d.country}</strong><br/>${stats.first}–${stats.last}<br/>Samples: ${d.values.length}<br/>Median: ${stats.median.toFixed(2)}<br/>Min: ${stats.min}<br/>Max: ${stats.max}`
+        );
 
-lineSel
-  .join("path")
-  .attr("class", "country-line")
-  .attr("fill", "none")
-  .attr("stroke-linecap", "round")
-  .attr("stroke-linejoin", "round")
-  .attr("d", d => lineGen(d.values))
-  .attr("stroke", d =>
-    d.country === currentCountry ? getCountryColor(d.country) : "#cccccc"
-  )
-  .attr("stroke-width", d =>
-    d.country === currentCountry ? 4 : 1.5
-  )
-  .attr("opacity", d =>
-    d.country === currentCountry ? 1 : 0.3
-  )
-  .style("cursor", "pointer")
-  .each(function(d) {
-    // Calcola la lunghezza del path per l'animazione
-    const pathLength = this.getTotalLength();
-    d3.select(this).attr("data-length", pathLength);
-    
-    // Se è il paese selezionato e non è già stato animato, anima
-    if (d.country === currentCountry && !d3.select(this).classed("animated")) {
-      d3.select(this)
-        .attr("stroke-dasharray", pathLength)
-        .attr("stroke-dashoffset", pathLength)
-        .classed("animated", true)
-        .transition()
-        .duration(1500)
-        .ease(d3.easeLinear)
-        .attr("stroke-dashoffset", 0)
-        .on("end", function() {
-          // Rimuovi stroke-dasharray dopo l'animazione per rendering normale
-          d3.select(this).attr("stroke-dasharray", "none");
-        });
-    } else {
-      // Reset per linee non selezionate
-      d3.select(this)
-        .attr("stroke-dasharray", "none")
-        .attr("stroke-dashoffset", 0)
-        .classed("animated", false);
-    }
-  })
-  .on("mousemove", function (event, d) {
-    // statistiche per il tooltip, in stile “Samples / Median / Min / Max”
-    const samples = d.values.length;
-    const minVal  = d3.min(d.values, v => v.EVENTS);
-    const maxVal  = d3.max(d.values, v => v.EVENTS);
-    const median  = d3.median(d.values, v => v.EVENTS);
-    const firstYear = d3.min(d.values, v => v.YEAR);
-    const lastYear  = d3.max(d.values, v => v.YEAR);
+        if (d.country !== currentCountry) d3.select(this).attr("stroke-width", 2.5).attr("opacity", 0.6);
+      })
+      .on("mouseout", function(event, d) {
+        updateTooltip(false);
+        if (d.country !== currentCountry) d3.select(this).attr("stroke-width", 1.5).attr("opacity", 0.3);
+      })
+      .on("click", (e, d) => {
+        if (d.country !== currentCountry) {
+          currentCountry = d.country;
+          countrySelect.property("value", currentCountry);
+          updateChart();
+          updateTooltip(false);
+        }
+      });
 
-    showTooltip(
-      event,
-      `<strong>${d.country}</strong><br/>` +
-      `${firstYear}–${lastYear}<br/>` +
-      `Samples: ${samples}<br/>` +
-      `Median: ${median.toFixed(2)}<br/>` +
-      `Min: ${minVal}<br/>` +
-      `Max: ${maxVal}`
-    );
-
-    // piccola evidenziazione al passaggio
-    if (d.country !== currentCountry) {
-      d3.select(this)
-        .attr("stroke-width", 2.5)
-        .attr("opacity", 0.6);
-    }
-  })
-  .on("mouseout", function (event, d) {
-    hideTooltip();
-
-    if (d.country !== currentCountry) {
-      d3.select(this)
-        .attr("stroke-width", 1.5)
-        .attr("opacity", 0.3);
-    }
-  })
-  .on("click", function (event, d) {
-    if (d.country !== currentCountry) {
-      currentCountry = d.country;
-      countrySelect.property("value", currentCountry);
-      updateChart();
-      hideTooltip();
-    }
-  });
-
-    // Linee tratteggiate per gli anni riempiti all'inizio
-    const dashedLines = linesG
-      .selectAll(".country-line-dashed")
-      .data(expandedData.filter(d => d.filledYears.length > 0), d => d.country);
-
-    dashedLines
+    const dashedData = data.filter(d => d.filledYears.length > 0);
+    linesLayer.selectAll(".country-line-dashed")
+      .data(dashedData, d => d.country)
       .join("path")
       .attr("class", "country-line-dashed")
       .attr("fill", "none")
-      .attr("stroke-linecap", "round")
-      .attr("stroke-linejoin", "round")
       .attr("stroke-dasharray", "5,5")
       .attr("d", d => lineGen(d.allValues.filter(v => v.isFilled || v.YEAR === d.values[0].YEAR)))
-      .attr("stroke", d =>
-        d.country === currentCountry ? getCountryColor(d.country) : "#cccccc"
-      )
-      .attr("stroke-width", d =>
-        d.country === currentCountry ? 2 : 1
-      )
-      .attr("opacity", d =>
-        d.country === currentCountry ? 0.6 : 0.2
-      )
+      .attr("stroke", d => getLineAttrs(d.country, d.country === currentCountry).stroke)
+      .attr("stroke-width", d => d.country === currentCountry ? 2 : 1)
+      .attr("opacity", d => d.country === currentCountry ? 0.6 : 0.2)
       .style("pointer-events", "none");
 
-    // --- Linee tratteggiate per estensione fino al bordo destro ---
-    const extensionLines = linesG
-      .selectAll(".country-line-extension")
-      .data(expandedData.filter(d => {
-        // Solo per paesi che non arrivano all'anno massimo
-        const lastYear = d.values[d.values.length - 1].YEAR;
-        return lastYear < yearExtent[1];
-      }), d => d.country);
-
-    extensionLines
+    const extensionData = data.filter(d => d.values[d.values.length - 1].YEAR < yearExtent[1]);
+    linesLayer.selectAll(".country-line-extension")
+      .data(extensionData, d => d.country)
       .join("line")
       .attr("class", "country-line-extension")
-      .attr("x1", d => {
-        const lastPoint = d.values[d.values.length - 1];
-        return xScale(lastPoint.YEAR);
-      })
-      .attr("y1", d => {
-        const lastPoint = d.values[d.values.length - 1];
-        return yScale(lastPoint.EVENTS);
-      })
+      .attr("x1", d => xScale(d.values[d.values.length - 1].YEAR))
+      .attr("y1", d => yScale(d.values[d.values.length - 1].EVENTS))
       .attr("x2", xScale(yearExtent[1]))
-      .attr("y2", d => {
-        const lastPoint = d.values[d.values.length - 1];
-        return yScale(lastPoint.EVENTS);
-      })
-      .attr("stroke", d => 
-        d.country === currentCountry ? getCountryColor(d.country) : "#cccccc"
-      )
-      .attr("stroke-width", d => 
-        d.country === currentCountry ? 2 : 1
-      )
+      .attr("y2", d => yScale(d.values[d.values.length - 1].EVENTS))
+      .attr("stroke", d => getLineAttrs(d.country, d.country === currentCountry).stroke)
+      .attr("stroke-width", d => d.country === currentCountry ? 2 : 1)
       .attr("stroke-dasharray", "5,5")
-      .attr("opacity", d => 
-        d.country === currentCountry ? 0.5 : 0.2
-      )
+      .attr("opacity", d => d.country === currentCountry ? 0.5 : 0.2)
       .style("pointer-events", "none");
 
-
-    // --- Etichette con nomi dei paesi alla fine delle linee ---
-    // Calcola le posizioni y finali e ordina per evitare sovrapposizioni
-    const labelData = expandedData.map(d => {
-      const lastPoint = d.values[d.values.length - 1];
-      return {
-        country: d.country,
-        x: xScale(lastPoint.YEAR) + 5,
-        y: yScale(lastPoint.EVENTS),
-        originalY: yScale(lastPoint.EVENTS)
-      };
+    const labelData = data.map(d => {
+      const last = d.values[d.values.length - 1];
+      return { country: d.country, x: xScale(last.YEAR) + 5, y: yScale(last.EVENTS) };
     }).sort((a, b) => a.y - b.y);
 
-    // Risolvi sovrapposizioni con algoritmo di separazione
-    const minSpacing = 14; // Spaziatura minima tra le etichette
+    const minLabelSpacing = 14;
     for (let i = 1; i < labelData.length; i++) {
-      const prev = labelData[i - 1];
-      const curr = labelData[i];
-      if (curr.y - prev.y < minSpacing) {
-        curr.y = prev.y + minSpacing;
+      if (labelData[i].y - labelData[i - 1].y < minLabelSpacing) {
+        labelData[i].y = labelData[i - 1].y + minLabelSpacing;
       }
     }
 
-    linesG
-      .selectAll(".country-label")
+    linesLayer.selectAll(".country-label")
       .data(labelData, d => d.country)
       .join("text")
       .attr("class", "country-label")
@@ -481,41 +282,26 @@ lineSel
       .attr("fill", d => d.country === currentCountry ? getCountryColor(d.country) : "#999")
       .attr("opacity", d => d.country === currentCountry ? 1 : 0.5)
       .text(d => d.country)
-      .style("pointer-events", d => d.country === currentCountry ? "none" : "auto")
       .style("cursor", d => d.country === currentCountry ? "default" : "pointer")
-      .on("click", function(event, d) {
+      .on("click", (e, d) => {
         if (d.country !== currentCountry) {
           currentCountry = d.country;
           countrySelect.property("value", currentCountry);
           updateChart();
         }
       })
-      .on("mouseover", function(event, d) {
-        if (d.country !== currentCountry) {
-          d3.select(this)
-            .attr("opacity", 0.8)
-            .attr("font-size", 11);
-        }
+      .on("mouseover", function(e, d) {
+        if (d.country !== currentCountry) d3.select(this).attr("opacity", 0.8).attr("font-size", 11);
       })
-      .on("mouseout", function(event, d) {
-        if (d.country !== currentCountry) {
-          d3.select(this)
-            .attr("opacity", 0.5)
-            .attr("font-size", 10);
-        }
+      .on("mouseout", function(e, d) {
+        if (d.country !== currentCountry) d3.select(this).attr("opacity", 0.5).attr("font-size", 10);
       });
 
-    // --- Trova i dati del paese selezionato ---
-    const selectedCountryData = expandedData.find(d => d.country === currentCountry);
+    pointsLayer.selectAll("*").remove();
+    const selectedCountryData = data.find(d => d.country === currentCountry);
 
-    // --- Punti di cambio direzione (massimi e minimi locali) per il paese selezionato ---
-    pointsG.selectAll("*").remove();
-    
     if (selectedCountryData) {
-      // Punti dati interattivi per tutti i valori del paese selezionato
-      // Aggiungi cerchi visibili
-      pointsG
-        .selectAll(".data-point-visible")
+      pointsLayer.selectAll(".data-point-visible")
         .data(selectedCountryData.values)
         .join("circle")
         .attr("class", "data-point-visible")
@@ -528,9 +314,7 @@ lineSel
         .attr("opacity", 0.7)
         .style("pointer-events", "none");
 
-      // Aggiungi cerchi invisibili più grandi per catturare il mouse
-      pointsG
-        .selectAll(".data-point-hitarea")
+      pointsLayer.selectAll(".data-point-hitarea")
         .data(selectedCountryData.values)
         .join("circle")
         .attr("class", "data-point-hitarea")
@@ -538,95 +322,51 @@ lineSel
         .attr("cy", d => yScale(d.EVENTS))
         .attr("r", 12)
         .attr("fill", "transparent")
-        .attr("stroke", "none")
         .style("cursor", "pointer")
-        .on("mouseenter", function (event, d) {
-          // Trova il cerchio visibile corrispondente
-          const index = selectedCountryData.values.indexOf(d);
-          d3.select(pointsG.selectAll(".data-point-visible").nodes()[index])
-            .attr("r", 6)
-            .attr("opacity", 1);
-          
-          showTooltip(
-            event,
-            `<div style="text-align: center;"><strong>${currentCountry}</strong></div>` +
-            `<strong>Year:</strong> ${d.YEAR}<br/>` +
-            `<strong>${cfg.label}:</strong> ${d.EVENTS.toLocaleString()}`
-          );
+        .on("mouseenter", (event, d) => {
+          const idx = selectedCountryData.values.indexOf(d);
+          d3.select(pointsLayer.selectAll(".data-point-visible").nodes()[idx]).attr("r", 6).attr("opacity", 1);
+          updateTooltip(true, event, `<div style="text-align: center;"><strong>${currentCountry}</strong></div><strong>Year:</strong> ${d.YEAR}<br/><strong>${eventConfig.label}:</strong> ${d.EVENTS.toLocaleString()}`);
         })
-        .on("mousemove", function (event, d) {
-          showTooltip(
-            event,
-            `<div style="text-align: center;"><strong>${currentCountry}</strong></div>` +
-            `<strong>Year:</strong> ${d.YEAR}<br/>` +
-            `<strong>${cfg.label}:</strong> ${d.EVENTS.toLocaleString()}`
-          );
+        .on("mousemove", (event, d) => {
+          updateTooltip(true, event, `<div style="text-align: center;"><strong>${currentCountry}</strong></div><strong>Year:</strong> ${d.YEAR}<br/><strong>${eventConfig.label}:</strong> ${d.EVENTS.toLocaleString()}`);
         })
-        .on("mouseleave", function (event, d) {
-          // Ripristina il cerchio visibile
-          const index = selectedCountryData.values.indexOf(d);
-          d3.select(pointsG.selectAll(".data-point-visible").nodes()[index])
-            .attr("r", 4)
-            .attr("opacity", 0.7);
-          
-          hideTooltip();
+        .on("mouseleave", (event, d) => {
+          const idx = selectedCountryData.values.indexOf(d);
+          d3.select(pointsLayer.selectAll(".data-point-visible").nodes()[idx]).attr("r", 4).attr("opacity", 0.7);
+          updateTooltip(false);
         })
-        .on("click", function (event, d) {
+        .on("click", (event, d) => {
           event.stopPropagation();
-          // Toggle: se clicco sullo stesso anno, deseleziono
-          if (selectedYear === d.YEAR) {
-            selectedYear = null;
-          } else {
-            selectedYear = d.YEAR;
-          }
+          selectedYear = selectedYear === d.YEAR ? null : d.YEAR;
           updateVerticalLine();
         });
     }
 
-    // Funzione per aggiornare la linea verticale e i punti di confronto
     function updateVerticalLine() {
-      verticalLineG.selectAll("*").remove();
-      comparisonPointsG.selectAll("*").remove();
+      verticalLineLayer.selectAll("*").remove();
+      comparisonPointsLayer.selectAll("*").remove();
 
       if (selectedYear === null) return;
 
       const x = xScale(selectedYear);
+      const vLine = verticalLineLayer.append("g");
+      
+      vLine.append("line")
+        .attr("x1", x).attr("x2", x).attr("y1", 0).attr("y2", height)
+        .attr("stroke", "#000").attr("stroke-width", 1).attr("stroke-dasharray", "6,4").attr("opacity", 0.6);
 
-      // Disegna la linea verticale tratteggiata rossa
-      verticalLineG
-        .append("line")
-        .attr("class", "comparison-vertical-line")
-        .attr("x1", x)
-        .attr("x2", x)
-        .attr("y1", 0)
-        .attr("y2", height)
-        .attr("stroke", "#000")
-        .attr("stroke-width", 1)
-        .attr("stroke-dasharray", "6,4")
-        .attr("opacity", 0.6);
-
-      // Aggiungi etichetta anno sulla linea
-      verticalLineG
-        .append("text")
-        .attr("x", x)
-        .attr("y", -10)
-        .attr("text-anchor", "middle")
-        .attr("font-size", 12)
-        .attr("font-weight", "bold")
-        .attr("fill", "#dc3545")
+      vLine.append("text")
+        .attr("x", x).attr("y", -10)
+        .attr("text-anchor", "middle").attr("font-size", 12).attr("font-weight", "bold").attr("fill", "#dc3545")
         .text(selectedYear);
 
-      // Raccogli tutti i valori per quell'anno da tutti i paesi
-      const yearData = expandedData
-        .map(d => {
-          const point = d.values.find(v => v.YEAR === selectedYear);
-          return point ? { country: d.country, ...point } : null;
-        })
-        .filter(d => d !== null);
+      const yearData = data.map(d => {
+        const p = d.values.find(v => v.YEAR === selectedYear);
+        return p ? { country: d.country, ...p } : null;
+      }).filter(Boolean);
 
-      // Disegna i punti di confronto per tutti i paesi
-      comparisonPointsG
-        .selectAll(".comparison-point")
+      comparisonPointsLayer.selectAll(".comparison-point")
         .data(yearData)
         .join("circle")
         .attr("class", "comparison-point")
@@ -634,38 +374,21 @@ lineSel
         .attr("cy", d => yScale(d.EVENTS))
         .attr("r", 5)
         .attr("fill", d => getCountryColor(d.country))
-        .attr("stroke", "#000")
-        .attr("stroke-width", 1)
-        .attr("opacity", 0.9)
+        .attr("stroke", "#000").attr("stroke-width", 1).attr("opacity", 0.9)
         .style("cursor", "pointer")
-        .on("mouseenter", function (event, d) {
-          d3.select(this)
-            .attr("r", 7)
-            .attr("stroke-width", 2);
-          
-          showTooltip(
-            event,
-            `<div style="text-align: center;"><strong>${d.country}</strong></div>` +
-            `<strong>Year:</strong> ${d.YEAR}<br/>` +
-            `<strong>${cfg.label}:</strong> ${d.EVENTS.toLocaleString()}`
-          );
+        .on("mouseenter", function(e, d) {
+          d3.select(this).attr("r", 7).attr("stroke-width", 2);
+          updateTooltip(true, e, `<div style="text-align: center;"><strong>${d.country}</strong></div><strong>Year:</strong> ${d.YEAR}<br/><strong>${eventConfig.label}:</strong> ${d.EVENTS.toLocaleString()}`);
         })
-        .on("mousemove", function (event, d) {
-          showTooltip(
-            event,
-            `<div style="text-align: center;"><strong>${d.country}</strong></div>` +
-            `<strong>Year:</strong> ${d.YEAR}<br/>` +
-            `<strong>${cfg.label}:</strong> ${d.EVENTS.toLocaleString()}`
-          );
+        .on("mousemove", function(e, d) {
+           updateTooltip(true, e, `<div style="text-align: center;"><strong>${d.country}</strong></div><strong>Year:</strong> ${d.YEAR}<br/><strong>${eventConfig.label}:</strong> ${d.EVENTS.toLocaleString()}`);
         })
-        .on("mouseleave", function () {
-          d3.select(this)
-            .attr("r", 5)
-            .attr("stroke-width", 1);
-          hideTooltip();
+        .on("mouseleave", function() {
+          d3.select(this).attr("r", 5).attr("stroke-width", 1);
+          updateTooltip(false);
         })
-        .on("click", function (event, d) {
-          event.stopPropagation();
+        .on("click", (e, d) => {
+          e.stopPropagation();
           if (d.country !== currentCountry) {
             currentCountry = d.country;
             countrySelect.property("value", currentCountry);
@@ -674,44 +397,33 @@ lineSel
         });
     }
 
-    // Inizializza la linea verticale se c'è un anno selezionato
     updateVerticalLine();
 
-    // --- Testo di story sotto il grafico ---
-    if (!storyEl.empty() && selectedCountryData && selectedCountryData.values.length) {
-      const selectedValues = selectedCountryData.values;
-      const firstYear = selectedValues[0].YEAR;
-      const lastYear = selectedValues[selectedValues.length - 1].YEAR;
-      const minVal = d3.min(selectedValues, d => d.EVENTS);
-      const maxVal = d3.max(selectedValues, d => d.EVENTS);
-
-      storyEl.text(
-        `${currentCountry} – from ${firstYear} to ${lastYear}, ` +
-        `${cfg.label.toLowerCase()} range between ${minVal} and ${maxVal} events per year.`
-      );
+    if (!storyEl.empty() && selectedCountryData?.values.length) {
+      const vals = selectedCountryData.values;
+      const minVal = d3.min(vals, d => d.EVENTS);
+      const maxVal = d3.max(vals, d => d.EVENTS);
+      storyEl.text(`${currentCountry} – from ${vals[0].YEAR} to ${vals[vals.length - 1].YEAR}, ${eventConfig.label.toLowerCase()} range between ${minVal} and ${maxVal} events per year.`);
     }
   }
 
-  // --- Event handlers dei menu a tendina ---
-  eventSelect.on("change", function () {
+  eventSelect.on("change", function() {
     currentEventId = this.value;
-    selectedYear = null; // Reset anno selezionato quando cambia evento
+    selectedYear = null;
     updateChart();
   });
 
-  countrySelect.on("change", function () {
+  countrySelect.on("change", function() {
     currentCountry = this.value;
     updateChart();
   });
 
-  // Click sul background SVG per deselezionare l'anno
-  svg.on("click", function (event) {
-    if (event.target === this || event.target.tagName === 'rect') {
+  svg.on("click", (e) => {
+    if (e.target === svg.node() || e.target.tagName === 'rect') {
       selectedYear = null;
       updateChart();
     }
   });
 
-  // Primo draw
   updateChart();
 }
