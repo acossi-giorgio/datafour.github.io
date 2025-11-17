@@ -107,7 +107,11 @@ function renderLinePlotChart(container, datasets) {
 
   function processData(eventId) {
     const raw = datasets[eventId] || [];
-    const filtered = raw.filter(d => 
+    const normalized = raw.map(d => ({
+      ...d,
+      EVENTS: d.EVENTS != null ? d.EVENTS : d.FATALITIES
+    }));
+    const filtered = normalized.filter(d => 
       d.COUNTRY && d.YEAR != null && d.EVENTS != null && 
       allCountries.includes(d.COUNTRY) && 
       (!window.isYearInRange || window.isYearInRange(d.YEAR))
