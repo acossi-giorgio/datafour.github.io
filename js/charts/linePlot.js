@@ -5,7 +5,6 @@ function renderLinePlotChart(container, datasets) {
   if (root.empty() || svg.empty()) return;
 
   const eventSelect = d3.select("#lineplot-year-select");
-  const countrySelect = d3.select("#lineplot-country-select");
   const storyEl = d3.select("#lineplot-story");
   
   const TOOLTIP_ID = 'lineplot-tooltip';
@@ -92,14 +91,12 @@ function renderLinePlotChart(container, datasets) {
     sel.selectAll("option").data(data).join("option").attr("value", valFn).text(txtFn);
 
   populateSelect(eventSelect, EVENT_CONFIGS, d => d.id, d => d.label);
-  populateSelect(countrySelect, allCountries, d => d, d => d);
 
   let currentEventId = EVENT_CONFIGS[0].id;
   let currentCountry = allCountries[0];
   let selectedYear = null;
 
   eventSelect.property("value", currentEventId);
-  countrySelect.property("value", currentCountry);
 
   const xScale = d3.scaleLinear().range([0, width]);
   const yScale = d3.scaleLinear().range([height, 0]);
@@ -206,13 +203,12 @@ function renderLinePlotChart(container, datasets) {
         const stats = {
           min: d3.min(vals),
           max: d3.max(vals),
-          median: d3.median(vals),
           first: d3.min(d.values, v => v.YEAR),
           last: d3.max(d.values, v => v.YEAR)
         };
         
         updateTooltip(true, event, 
-          `<strong>${d.country}</strong><br/>${stats.first}–${stats.last}<br/>Samples: ${d.values.length}<br/>Median: ${stats.median.toFixed(2)}<br/>Min: ${stats.min}<br/>Max: ${stats.max}`
+          `<strong>${d.country}</strong><br/>${stats.first}–${stats.last}<br/>Min: ${stats.min}<br/>Max: ${stats.max}`
         );
 
         if (d.country !== currentCountry) d3.select(this).attr("stroke-width", 2.5).attr("opacity", 0.6);
@@ -224,7 +220,6 @@ function renderLinePlotChart(container, datasets) {
       .on("click", (e, d) => {
         if (d.country !== currentCountry) {
           currentCountry = d.country;
-          countrySelect.property("value", currentCountry);
           updateChart();
           updateTooltip(false);
         }
@@ -286,7 +281,6 @@ function renderLinePlotChart(container, datasets) {
       .on("click", (e, d) => {
         if (d.country !== currentCountry) {
           currentCountry = d.country;
-          countrySelect.property("value", currentCountry);
           updateChart();
         }
       })
@@ -391,7 +385,6 @@ function renderLinePlotChart(container, datasets) {
           e.stopPropagation();
           if (d.country !== currentCountry) {
             currentCountry = d.country;
-            countrySelect.property("value", currentCountry);
             updateChart();
           }
         });
@@ -410,11 +403,6 @@ function renderLinePlotChart(container, datasets) {
   eventSelect.on("change", function() {
     currentEventId = this.value;
     selectedYear = null;
-    updateChart();
-  });
-
-  countrySelect.on("change", function() {
-    currentCountry = this.value;
     updateChart();
   });
 
