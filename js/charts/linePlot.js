@@ -64,7 +64,6 @@ function renderLinePlotChart(container, datasets) {
     .attr("y", height + 45)
     .attr("text-anchor", "middle")
     .attr("font-size", 13)
-    .attr("font-weight", "bold")
     .text("Year");
 
   g.append("text")
@@ -74,8 +73,7 @@ function renderLinePlotChart(container, datasets) {
     .attr("y", -75)
     .attr("text-anchor", "middle")
     .attr("font-size", 13)
-    .attr("font-weight", "bold")
-    .text("Number of Events");
+    .text("Number of events");
 
   const EVENT_CONFIGS = [
     { id: "demostrationEvents", label: "Demonstration events", colorKey: DATASET_KEYS.DEMONSTRATIONS },
@@ -400,7 +398,7 @@ function renderLinePlotChart(container, datasets) {
       const vals = selectedCountryData.values;
       const minVal = d3.min(vals, d => d.EVENTS);
       const maxVal = d3.max(vals, d => d.EVENTS);
-      storyEl.text(`${currentCountry} – from ${vals[0].YEAR} to ${vals[vals.length - 1].YEAR}, ${eventConfig.label.toLowerCase()} range between ${minVal} and ${maxVal} events per year.`);
+      storyEl.text(`${currentCountry} – between ${vals[0].YEAR} and ${vals[vals.length - 1].YEAR}, the annual number of ${eventConfig.label.toLowerCase()} is between ${minVal} and ${maxVal}.`);
     }
   }
 
