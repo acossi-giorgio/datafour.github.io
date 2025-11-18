@@ -13,6 +13,7 @@ async function init() {
   await loadComponent('intro-container', 'components/intro.html');
   await loadComponent('chapter-1-container', 'components/chapter_1.html');
   await loadComponent('chapter-2-container', 'components/chapter_2.html');
+  await loadComponent('chapter-3-container', 'components/chapter_3.html');
   await loadComponent('footer-container', 'components/footer.html');
 
   await loadComponent('grouped-bar-container', 'components/charts/grouped_bar.html');
@@ -24,6 +25,7 @@ async function init() {
   await loadComponent('histogram-container', 'components/charts/histogram.html');
   await loadComponent('ridgeline-plot-container', 'components/charts/ridgeline_plot.html');
   await loadComponent('boxplot-container', 'components/charts/box_plot.html');
+  await loadComponent('lineplot-container', 'components/charts/line_plot.html');
 
   renderChart('grouped-bar-chart', renderGroupedBarChart, datasets);
   renderChart('stacked-100-chart', renderStacked100Chart, datasets);
@@ -34,6 +36,7 @@ async function init() {
   renderChart('histogram-chart', renderHistogramChart, datasets);
   renderChart('ridgeline-chart', renderRidgeLinePlot, datasets);
   renderChart('box-plot-chart', renderBoxPlotChart, datasets);
+  renderChart('lineplot-chart', renderLinePlotChart, datasets);
 
   setupMobileNavAutoClose();
 }
