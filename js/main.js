@@ -27,6 +27,7 @@ async function init() {
   await loadComponent('ridgeline-plot-container', 'components/charts/ridgeline_plot.html');
   await loadComponent('boxplot-container', 'components/charts/box_plot.html');
   await loadComponent('lineplot-container', 'components/charts/line_plot.html');
+  await loadComponent('ChoroplethMap-container', 'components/charts/choroplethmap.html');
 
   renderChart('grouped-bar-chart', renderGroupedBarChart, datasets);
   renderChart('stacked-100-chart', renderStacked100Chart, datasets);
@@ -38,6 +39,7 @@ async function init() {
   renderChart('ridgeline-chart', renderRidgeLinePlot, datasets);
   renderChart('box-plot-chart', renderBoxPlotChart, datasets);
   renderChart('lineplot-chart', renderLinePlotChart, datasets);
+  renderChart('choropleth-chart', renderChoroplethMap, datasets);
 
   setupMobileNavAutoClose();
 }

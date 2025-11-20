@@ -1,26 +1,23 @@
-<div id="choroplethmap-chart" class="card-shell-narrow">
+<div id="choropleth-chart" class="card-shell-narrow">
   <div class="h4 pt-2 mb-3 fw-bold text-center">
-    Some Text
+    Civilian Fatalities by Country
   </div>
 
-    <svg id="choroplethmap-svg"></svg>
+  <div class="mb-3 text-center">
+    <label for="choropleth-year-select" class="form-label fw-semibold">Select Year:</label>
+    <select id="choropleth-year-select" class="form-select d-inline-block w-auto">
+      <option value="">Loading...</option>
+    </select>
   </div>
-  <div
-    id="choroplethmap-tooltip"
-    style="
-      position: absolute;
-      pointer-events: none;
-      display: none;
-      padding: 6px 10px;
-      background: rgba(0, 0, 0, 0.75);
-      color: #fff;
-      border-radius: 4px;
-      font-size: 12px;
-    "
-  ></div>
+
+  <div class="text-center">
+    <svg id="choropleth-svg" width="960" height="500"></svg>
+  </div>
+
   <div class="card-narrow">
     <p class="mt-2 mb-0 pt-2 text-muted small text-start">
-Some text
+      This map shows the number of reported civilian fatalities across Middle East and Africa countries. 
+      Select a year to see the distribution of casualties. Darker red indicates higher fatalities.
     </p>
   </div>
 </div>
