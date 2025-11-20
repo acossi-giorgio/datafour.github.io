@@ -119,9 +119,7 @@ function renderChoroplethMap(container, datasets) {
 
   // Color scale - rossi per le fatalities
   const maxFatalities = d3.max(fatalitiesData, d => d.fatalities) || 1;
-  const colorScale = d3.scaleSequential()
-    .domain([0, maxFatalities])
-    .interpolator(d3.interpolateReds);
+  const colorScale = d3.scaleOrdinal(d3.schemeReds[9]);
 
   const formatNum = d3.format(',');
 
