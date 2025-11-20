@@ -20,6 +20,29 @@ function renderCartogram(container, datasets) {
   let animationInterval = null;
   let isPlaying = false;
 
+
+  const TOOLTIP_ID = 'cartogram-tooltip';
+  let tooltip = d3.select(`#${TOOLTIP_ID}`);
+  if (tooltip.empty()) {
+    tooltip = d3.select('body').append('div').attr('id', TOOLTIP_ID);
+  }
+
+  tooltip
+    .classed('chart-tooltip', true)
+    .style('position', 'fixed')
+    .style('pointer-events', 'none')
+    .style('display', 'none')
+    .style('opacity', 0)
+    .style('background', 'rgba(0, 0, 0, 0.9)')
+    .style('color', '#fff')
+    .style('padding', '8px 12px')
+    .style('border-radius', '4px')
+    .style('font-size', '12px')
+    .style('font-family', 'sans-serif')
+    .style('z-index', 10000)
+    .style('white-space', 'nowrap')
+    .style('box-shadow', '0 2px 8px rgba(0,0,0,0.3)');
+
   const margin = { top: 10, right: 20, bottom: 20, left: 20 };
   const fullWidth = 960;
   const fullHeight = 500;
@@ -123,6 +146,35 @@ function renderCartogram(container, datasets) {
     .domain([0, maxEvents])
     .range([0, 40]); // Raggio da 0 a 40 pixel
 
+  const formatNum = d3.format(',');
+
+  function showTooltip(event, html) {
+    tooltip
+      .html(html)
+      .style('display', 'block')
+      .style('opacity', 1);
+
+    let x = event.clientX + 14;
+    let y = event.clientY + 16;
+
+    const rect = tooltip.node().getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    if (x + rect.width > vw - 8) {
+      x = event.clientX - rect.width - 14;
+    }
+    if (y + rect.height > vh - 8) {
+      y = event.clientY - rect.height - 14;
+    }
+
+    tooltip.style('left', `${x}px`).style('top', `${y}px`);
+  }
+
+  function hideTooltip() {
+    tooltip.style('opacity', 0).style('display', 'none');
+  }
+
   // Carica GeoJSON
   d3.json("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson")
     .then(function(topo) {
@@ -177,6 +229,7 @@ function renderCartogram(container, datasets) {
               .attr('stroke', '#fff')
               .attr('stroke-width', 1.5)
               .attr('opacity', 0.7)
+              .style('cursor', 'pointer')
               .call(enter => enter.transition()
                 .duration(500)
                 .attr('r', d => radiusScale(d.events))),
@@ -192,7 +245,36 @@ function renderCartogram(container, datasets) {
                 .duration(300)
                 .attr('r', 0)
                 .remove())
-          );
+          )
+          .on('mouseenter', (event, d) => {
+            showTooltip(
+              event,
+              `<div style="text-align: center;"><strong>${d.country}</strong></div>` +
+              `<strong>Year:</strong> ${selectedYear}<br/>` +
+              `<strong>Violence Events:</strong> ${formatNum(d.events)}`
+            );
+            
+            // Evidenzia la bolla
+            d3.select(event.currentTarget)
+              .attr('opacity', 1)
+              .attr('stroke-width', 2.5);
+          })
+          .on('mousemove', (event, d) => {
+            showTooltip(
+              event,
+              `<div style="text-align: center;"><strong>${d.country}</strong></div>` +
+              `<strong>Year:</strong> ${selectedYear}<br/>` +
+              `<strong>Violence Events:</strong> ${formatNum(d.events)}`
+            );
+          })
+          .on('mouseleave', (event) => {
+            hideTooltip();
+            
+            // Ripristina l'opacità normale
+            d3.select(event.currentTarget)
+              .attr('opacity', 0.7)
+              .attr('stroke-width', 1.5);
+          });
 
         // Aggiungi anno sulla mappa
         g.selectAll('.year-label').remove();
