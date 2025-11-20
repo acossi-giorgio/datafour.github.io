@@ -203,7 +203,8 @@ function renderCartogram(container, datasets) {
           .attr('text-anchor', 'end')
           .attr('font-size', 48)
           .attr('font-weight', 'bold')
-          .attr('opacity', 1)
+          .style('fill', '#ffffff')  
+          .attr('opacity', 0.7)
           .text(selectedYear);
       }
 
