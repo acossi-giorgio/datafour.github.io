@@ -1,0 +1,40 @@
+<div id="cartogram-chart" class="card-shell-narrow">
+  <div class="h4 pt-2 mb-3 fw-bold text-center">
+    Violence Events Distribution
+  </div>
+
+  <div class="mb-3 text-center">
+    <div class="d-inline-block align-middle mx-2">
+      <button id="cartogram-play-btn" class="btn btn-primary btn-sm me-3">
+        <i class="bi bi-play-fill"></i> Play 
+      </button>
+      <label for="cartogram-speed-slider" class="form-label fw-semibold mb-0 me-2">Speed:</label>
+      <input type="range" id="cartogram-speed-slider" class="form-range d-inline-block"
+         style="width: 200px; vertical-align: middle;"
+         min="200" max="2000" value="800" step="100">
+      <span id="cartogram-speed-value" class="fw-semibold ms-2">0.8s</span>
+    </div>
+  </div>
+
+  <div class="mb-3 text-center">
+    <div class="d-inline-block align-middle mx-2">
+      <label for="cartogram-year-slider" class="form-label fw-semibold mb-0">Year:</label>
+      <input type="range" id="cartogram-year-slider" class="form-range d-inline-block"
+         style="width: 300px; vertical-align: middle;"
+         min="0" max="0" value="0" step="1" data-init="false">
+      <span id="cartogram-year-slider-value" class="fw-semibold ms-2">—</span>
+    </div>
+  </div>
+
+  <div class="text-center">
+    <svg id="cartogram-svg" width="960" height="500"></svg>
+  </div>
+
+  <div class="card-narrow">
+    <p class="mt-2 mb-0 pt-2 text-muted small text-start">
+      This bubble map shows the combined distribution of political violence events and events targeting civilians 
+      across Middle East and Africa countries. The size and color of each bubble represents the total number of events from both categories. 
+      Use the Play/Stop buttons or drag the slider to navigate through different years. Darker orange indicates higher number of events.
+    </p>
+  </div>
+</div>
