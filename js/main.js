@@ -31,6 +31,7 @@ async function init() {
   await loadComponent('ChoroplethMap-container', 'components/charts/choroplethmap.html');
   await loadComponent('symbolic-map-chart', 'components/charts/symbolic_map.html');
 
+  await loadComponent('cartogram-container', 'components/charts/cartogram.html');
 
   renderChart('grouped-bar-chart', renderGroupedBarChart, datasets);
   renderChart('stacked-100-chart', renderStacked100Chart, datasets);
@@ -44,6 +45,7 @@ async function init() {
   renderChart('lineplot-chart', renderLinePlotChart, datasets);
   renderChart('choropleth-chart', renderChoroplethMap, datasets);
   renderChart('symbolic-map-chart', renderSymbolicMapChart, datasets);
+  renderChart('cartogram-chart', renderCartogram, datasets);
 
   setupMobileNavAutoClose();
 }
