@@ -11,6 +11,10 @@ function renderSymbolicMapChart(container, datasets) {
     return;
   }
 
+  let animationInterval = null;
+  let isPlaying = false;
+  let animationSpeed = 800;
+
   // Crea o recupera il tooltip centralizzato
   const TOOLTIP_ID = 'symbolic-map-tooltip';
   let tooltip = d3.select(`#${TOOLTIP_ID}`);
@@ -51,6 +55,17 @@ function renderSymbolicMapChart(container, datasets) {
     .append('g')
     .attr('class', 'chart-root')
     .attr('transform', `translate(${margin.left},${margin.top})`);
+  const mapGroup = g.append('g').attr('class', 'map-group');
+
+  // Setup zoom
+  const zoom = d3.zoom()
+    .scaleExtent([1, 8])
+    .translateExtent([[0, 0], [width, height]])
+    .on('zoom', (event) => {
+      mapGroup.attr('transform', event.transform);
+    });
+
+  svg.call(zoom);
 
   // Verifica che i datasets necessari esistano
   if (!datasets.countries || !datasets.aggregatedMapData) {
@@ -110,26 +125,48 @@ function renderSymbolicMapChart(container, datasets) {
     return;
   }
 
-  // Crea il controllo per l'anno
-  const controls = root.select('#symbolic-map-controls');
-  controls.selectAll('*').remove();
+  // Seleziona i controlli dall'HTML
+  const yearSelect = root.select('#symbolic-year-select');
+  if (yearSelect.empty()) {
+    console.warn('Year select element #symbolic-year-select not found');
+    return;
+  }
 
-  const controlGroup = controls.append('div')
-    .attr('class', 'd-flex align-items-center gap-3 flex-wrap');
+  const eventSelect = root.select('#symbolic-event-select');
+  if (eventSelect.empty()) {
+    console.warn('Event select element #symbolic-event-select not found');
+    return;
+  }
 
-  // Dropdown anno
-  const yearGroup = controlGroup.append('div')
-    .attr('class', 'd-flex align-items-center gap-2');
+  const playBtn = root.select('#symbolic-play-btn');
+  const speedSlider = root.select('#symbolic-speed-slider');
+  const speedLabel = root.select('#symbolic-speed-label');
 
-  yearGroup.append('label')
-    .attr('for', 'symbolic-year-select')
-    .attr('class', 'form-label mb-0')
-    .text('Year:');
+  const zoomInBtn = root.select('#symbolic-zoom-in');
+  const zoomOutBtn = root.select('#symbolic-zoom-out');
+  const zoomResetBtn = root.select('#symbolic-zoom-reset');
 
-  const yearSelect = yearGroup.append('select')
-    .attr('id', 'symbolic-year-select')
-    .attr('class', 'form-select form-select-sm')
-    .style('width', 'auto');
+  // Setup zoom button handlers
+  if (!zoomInBtn.empty()) {
+    zoomInBtn.on('click', () => {
+      svg.transition().duration(300).call(zoom.scaleBy, 1.3);
+    });
+  }
+
+  if (!zoomOutBtn.empty()) {
+    zoomOutBtn.on('click', () => {
+      svg.transition().duration(300).call(zoom.scaleBy, 0.7);
+    });
+  }
+
+  if (!zoomResetBtn.empty()) {
+    zoomResetBtn.on('click', () => {
+      svg.transition().duration(500).call(
+        zoom.transform,
+        d3.zoomIdentity.translate(0, 0).scale(1)
+      );
+    });
+  }
 
   // Popola il select degli anni
   yearSelect
@@ -141,20 +178,6 @@ function renderSymbolicMapChart(container, datasets) {
 
   // Imposta l'anno più recente come default
   yearSelect.property('value', years[years.length - 1]);
-
-  // Dropdown tipo di evento
-  const eventGroup = controlGroup.append('div')
-    .attr('class', 'd-flex align-items-center gap-2');
-
-  eventGroup.append('label')
-    .attr('for', 'symbolic-event-select')
-    .attr('class', 'form-label mb-0')
-    .text('Event Type:');
-
-  const eventSelect = eventGroup.append('select')
-    .attr('id', 'symbolic-event-select')
-    .attr('class', 'form-select form-select-sm')
-    .style('width', 'auto');
 
   // Popola il select degli eventi
   eventSelect
@@ -169,7 +192,7 @@ function renderSymbolicMapChart(container, datasets) {
 
   // Map projection - focalizzata su Medio Oriente (Iraq, Siria, Yemen, Arabia Saudita)
   const projection = d3.geoMercator()
-    .scale(900)  // Zoom più stretto
+    .scale(800)  // Zoom più stretto
     .center([45, 27])  // Centro più a est, tra Iraq/Yemen/Arabia
     .translate([width / 2, height / 2]);
 
@@ -208,11 +231,11 @@ function renderSymbolicMapChart(container, datasets) {
   d3.json("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson")
     .then(function(topo) {
       
-      // Gruppo per la mappa di base
-      const mapGroup = g.append('g').attr('class', 'map-group');
+      // Crea prima il gruppo per la mappa base
+      const baseMapGroup = mapGroup.append('g').attr('class', 'base-map-group');
       
-      // Gruppo per gli spike (sopra la mappa)
-      const spikesGroup = g.append('g').attr('class', 'spikes-group');
+      // Poi il gruppo per gli spike (sopra la mappa)
+      const spikesGroup = mapGroup.append('g').attr('class', 'spikes-group');
 
       function update(year, selectedEventType) {
         // Filtra gli eventi per anno e tipo di evento
@@ -228,8 +251,8 @@ function renderSymbolicMapChart(container, datasets) {
           .domain([0, maxFatalitiesForType])
           .range([0, 80]); // Altezza massima dello spike in pixel
 
-        // Disegna la mappa di base
-        mapGroup.selectAll('path.country')
+        // Disegna la mappa di base nel suo gruppo dedicato
+        baseMapGroup.selectAll('path.country')
           .data(topo.features)
           .join('path')
           .attr('class', 'country')
@@ -318,8 +341,8 @@ function renderSymbolicMapChart(container, datasets) {
         });
 
         // Aggiungi indicatore dell'anno corrente sulla mappa
-        g.selectAll('.year-label').remove();
-        g.append('text')
+        mapGroup.selectAll('.year-label').remove();
+        mapGroup.append('text')
           .attr('class', 'year-label')
           .attr('x', width - 10)
           .attr('y', height - 10)
@@ -343,6 +366,64 @@ function renderSymbolicMapChart(container, datasets) {
       eventSelect.on('change', function() {
         update(yearSelect.property('value'), this.value);
       });
+
+      // Animation function
+      function toggleAnimation() {
+        if (isPlaying) {
+          // Stop animation
+          clearInterval(animationInterval);
+          animationInterval = null;
+          isPlaying = false;
+          playBtn.html('▶ Play Animation');
+          playBtn.classed('btn-primary', true).classed('btn-danger', false);
+        } else {
+          // Start animation
+          isPlaying = true;
+          playBtn.html('⏸ Pause Animation');
+          playBtn.classed('btn-primary', false).classed('btn-danger', true);
+          
+          let currentIndex = years.indexOf(+yearSelect.property('value'));
+          
+          animationInterval = setInterval(() => {
+            currentIndex++;
+            if (currentIndex >= years.length) {
+              currentIndex = 0;
+            }
+            
+            const nextYear = years[currentIndex];
+            yearSelect.property('value', nextYear);
+            update(nextYear, eventSelect.property('value'));
+          }, animationSpeed);
+        }
+      }
+
+      if (!playBtn.empty()) {
+        playBtn.on('click', toggleAnimation);
+      }
+
+      // Speed slider event listener
+      if (!speedSlider.empty()) {
+        speedSlider.on('input', function() {
+          animationSpeed = +this.value;
+          speedLabel.text((animationSpeed / 1000).toFixed(1) + 's');
+          
+          if (isPlaying) {
+            clearInterval(animationInterval);
+            let currentIndex = years.indexOf(+yearSelect.property('value'));
+            
+            animationInterval = setInterval(() => {
+              currentIndex++;
+              if (currentIndex >= years.length) {
+                currentIndex = 0;
+              }
+              
+              const nextYear = years[currentIndex];
+              yearSelect.property('value', nextYear);
+              update(nextYear, eventSelect.property('value'));
+            }, animationSpeed);
+          }
+        });
+      }
     })
     .catch(function(error) {
       console.error('Error loading GeoJSON:', error);
