@@ -20,13 +20,17 @@ function renderChoroplethMap(container, datasets) {
   const playBtn = root.select('#choropleth-play-btn');
   const speedSlider = root.select('#choropleth-speed-slider');
   const speedLabel = root.select('#choropleth-speed-label');
+  
 
-  // Variabili per l'animazione
+  const zoomInBtn = root.select('#choropleth-zoom-in');
+  const zoomOutBtn = root.select('#choropleth-zoom-out');
+  const zoomResetBtn = root.select('#choropleth-zoom-reset');
+
+
   let animationInterval = null;
   let isPlaying = false;
-  let animationSpeed = 800; // millisecondi per frame
+  let animationSpeed = 800; 
 
-  // Crea o recupera il tooltip centralizzato
   const TOOLTIP_ID = 'choropleth-tooltip';
   let tooltip = d3.select(`#${TOOLTIP_ID}`);
   if (tooltip.empty()) {
@@ -66,18 +70,50 @@ function renderChoroplethMap(container, datasets) {
     .append('g')
     .attr('class', 'chart-root')
     .attr('transform', `translate(${margin.left},${margin.top})`);
+  const mapGroup = g.append('g').attr('class', 'map-group');
 
-  // Verifica che i datasets necessari esistano
+
+  const zoom = d3.zoom()
+    .scaleExtent([1, 8]) 
+    .translateExtent([[0, 0], [width, height]]) 
+    .on('zoom', (event) => {
+      mapGroup.attr('transform', event.transform);
+    });
+
+
+  svg.call(zoom);
+
+  if (!zoomInBtn.empty()) {
+    zoomInBtn.on('click', () => {
+      svg.transition().duration(300).call(zoom.scaleBy, 1.3);
+    });
+  }
+
+  if (!zoomOutBtn.empty()) {
+    zoomOutBtn.on('click', () => {
+      svg.transition().duration(300).call(zoom.scaleBy, 0.7);
+    });
+  }
+
+  if (!zoomResetBtn.empty()) {
+    zoomResetBtn.on('click', () => {
+      svg.transition().duration(500).call(
+        zoom.transform,
+        d3.zoomIdentity.translate(0, 0).scale(1)
+      );
+    });
+  }
+
   if (!datasets.countries || !datasets.civilianFatalities) {
     console.error('Missing required datasets: countries or civilianFatalities');
     return;
   }
 
-  // Prepara i dati dei paesi MEA
+
   const countriesSet = new Set(datasets.countries.map(d => d.Country.trim()));
   const iso3Map = new Map(datasets.countries.map(d => [d.Country.trim(), d.iso3]));
 
-  // Prepara i dati delle fatalities
+
   const fatalitiesData = datasets.civilianFatalities
     .map(d => ({ 
       country: d.COUNTRY?.trim() || '', 
@@ -87,7 +123,7 @@ function renderChoroplethMap(container, datasets) {
     }))
     .filter(d => d.country && countriesSet.has(d.country) && !isNaN(d.year));
 
-  // Filtra gli anni nel range
+
   const years = filterYearsRange(
     [...new Set(fatalitiesData.map(d => d.year))]
       .sort((a, b) => a - b)
@@ -98,7 +134,7 @@ function renderChoroplethMap(container, datasets) {
     return;
   }
 
-  // Popola il select degli anni
+
   yearSelect
     .selectAll('option')
     .data(years)
@@ -106,20 +142,31 @@ function renderChoroplethMap(container, datasets) {
     .attr('value', d => d)
     .text(d => d);
 
-  // Imposta l'anno più recente come default
   yearSelect.property('value', years[years.length - 1]);
 
-  // Map projection - focalizzata sul Medio Oriente e Nord Africa (MEA)
+  
   const projection = d3.geoMercator()
-    .scale(550)  // Zoom più stretto
-    .center([29, 25])  // Centro tra Medio Oriente e Nord Africa
+    .scale(550)  
+    .center([29, 25]) 
     .translate([width / 2, height / 2]);
 
   const path = d3.geoPath().projection(projection);
 
-  // Color scale - rossi per le fatalities
-  const maxFatalities = d3.max(fatalitiesData, d => d.fatalities) || 1;
-  const colorScale = d3.scaleOrdinal(d3.schemeReds[9]);
+
+const maxFatalities = d3.max(fatalitiesData, d => d.fatalities) || 1;
+const colorScale = d3.scaleThreshold()
+  .domain([1, 50, 100, 500, 1000, 5000, 10000, 20000])
+  .range([
+    '#ffd4d4',
+    '#f9b9b7',
+    '#f09e9a',
+    '#e6847d',
+    '#da695f',
+    '#cc4e41',
+    '#bc3123',
+    '#aa0000',
+    '#f81500ff'
+  ]);
 
   const formatNum = d3.format(',');
 
@@ -129,7 +176,6 @@ function renderChoroplethMap(container, datasets) {
       .style('display', 'block')
       .style('opacity', 1);
 
-    // Usa clientX/clientY invece di pageX/pageY per posizionamento fisso
     let x = event.clientX + 14;
     let y = event.clientY + 16;
 
@@ -137,7 +183,6 @@ function renderChoroplethMap(container, datasets) {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
 
-    // Evita che il tooltip esca dai bordi
     if (x + rect.width > vw - 8) {
       x = event.clientX - rect.width - 14;
     }
@@ -157,7 +202,6 @@ function renderChoroplethMap(container, datasets) {
     .then(function(topo) {
       
       function update(year) {
-        // Crea mappa delle fatalities per anno
         const dataMap = new Map();
         fatalitiesData
           .filter(d => d.year === +year)
@@ -166,9 +210,7 @@ function renderChoroplethMap(container, datasets) {
               dataMap.set(d.iso3, d.fatalities);
             }
           });
-
-        // Disegna la mappa
-        g.selectAll('path.country')
+        mapGroup.selectAll('path.country')
           .data(topo.features)
           .join('path')
           .attr('class', 'country')
@@ -217,8 +259,6 @@ function renderChoroplethMap(container, datasets) {
           .on('mouseleave', () => {
             hideTooltip();
           });
-
-        // Aggiungi indicatore dell'anno corrente sulla mappa
         g.selectAll('.year-label').remove();
         g.append('text')
           .attr('class', 'year-label')
@@ -232,25 +272,24 @@ function renderChoroplethMap(container, datasets) {
           .text(year);
       }
 
-      // Inizializza con l'anno selezionato
       update(yearSelect.property('value'));
       
-      // Aggiorna quando cambia l'anno manualmente
+      // Update when the year changes manually
       yearSelect.on('change', function() {
         update(this.value);
       });
 
-      // Funzione per avviare/fermare l'animazione
+      //Animation function
       function toggleAnimation() {
         if (isPlaying) {
-          // Ferma l'animazione
+          // Stop animation
           clearInterval(animationInterval);
           animationInterval = null;
           isPlaying = false;
           playBtn.html('▶ Play Animation');
           playBtn.classed('btn-primary', true).classed('btn-danger', false);
         } else {
-          // Avvia l'animazione
+          //Start animation 
           isPlaying = true;
           playBtn.html('⏸ Pause Animation');
           playBtn.classed('btn-primary', false).classed('btn-danger', true);
@@ -260,7 +299,7 @@ function renderChoroplethMap(container, datasets) {
           animationInterval = setInterval(() => {
             currentIndex++;
             if (currentIndex >= years.length) {
-              currentIndex = 0; // Ricomincia dall'inizio
+              currentIndex = 0; 
             }
             
             const nextYear = years[currentIndex];
@@ -269,8 +308,6 @@ function renderChoroplethMap(container, datasets) {
           }, animationSpeed);
         }
       }
-
-      // Event listener per il bottone play/pause
       if (!playBtn.empty()) {
         playBtn.on('click', toggleAnimation);
       }
@@ -280,8 +317,6 @@ function renderChoroplethMap(container, datasets) {
         speedSlider.on('input', function() {
           animationSpeed = +this.value;
           speedLabel.text((animationSpeed / 1000).toFixed(1) + 's');
-          
-          // Se l'animazione è in corso, riavviala con la nuova velocità
           if (isPlaying) {
             clearInterval(animationInterval);
             let currentIndex = years.indexOf(+yearSelect.property('value'));
