@@ -13,7 +13,6 @@ function renderSymbolicMapChart(container, datasets) {
 
   let animationInterval = null;
   let isPlaying = false;
-  let animationSpeed = 800;
 
   // Crea o recupera il tooltip centralizzato
   const TOOLTIP_ID = 'symbolic-map-tooltip';
@@ -126,9 +125,11 @@ function renderSymbolicMapChart(container, datasets) {
   }
 
   // Seleziona i controlli dall'HTML
-  const yearSelect = root.select('#symbolic-year-select');
-  if (yearSelect.empty()) {
-    console.warn('Year select element #symbolic-year-select not found');
+  const yearSlider = root.select('#symbolic-year-slider');
+  const yearLabel = root.select('#symbolic-year-slider-value');
+  
+  if (yearSlider.empty()) {
+    console.warn('Year slider element #symbolic-year-slider not found');
     return;
   }
 
@@ -140,7 +141,7 @@ function renderSymbolicMapChart(container, datasets) {
 
   const playBtn = root.select('#symbolic-play-btn');
   const speedSlider = root.select('#symbolic-speed-slider');
-  const speedLabel = root.select('#symbolic-speed-label');
+  const speedLabel = root.select('#symbolic-speed-value');
 
   const zoomInBtn = root.select('#symbolic-zoom-in');
   const zoomOutBtn = root.select('#symbolic-zoom-out');
@@ -169,15 +170,12 @@ function renderSymbolicMapChart(container, datasets) {
   }
 
   // Popola il select degli anni
-  yearSelect
-    .selectAll('option')
-    .data(years)
-    .join('option')
-    .attr('value', d => d)
-    .text(d => d);
+  yearSlider
+    .attr('min', 0)
+    .attr('max', years.length - 1)
+    .attr('value', years.length - 1);
 
-  // Imposta l'anno più recente come default
-  yearSelect.property('value', years[years.length - 1]);
+  yearLabel.text(years[years.length - 1]);
 
   // Popola il select degli eventi
   eventSelect
@@ -237,13 +235,16 @@ function renderSymbolicMapChart(container, datasets) {
       // Poi il gruppo per gli spike (sopra la mappa)
       const spikesGroup = mapGroup.append('g').attr('class', 'spikes-group');
 
-      function update(year, selectedEventType) {
+      function update(yearIndex, selectedEventType) {
+        const selectedYear = years[yearIndex];
+        yearLabel.text(selectedYear);
+
         // Filtra gli eventi per anno e tipo di evento
         const yearEvents = eventsData.filter(d => 
-          d.year === +year && d.subEventType === selectedEventType
+          d.year === selectedYear && d.subEventType === selectedEventType
         );
         
-        console.log(`Year ${year}, Event: ${selectedEventType}: ${yearEvents.length} events`);
+        console.log(`Year ${selectedYear}, Event: ${selectedEventType}: ${yearEvents.length} events`);
 
         // Calcola la scala per l'altezza degli spike basata solo sugli eventi del tipo selezionato
         const maxFatalitiesForType = d3.max(yearEvents, d => d.fatalities) || 1;
@@ -308,7 +309,7 @@ function renderSymbolicMapChart(container, datasets) {
                 event,
                 `<div style="text-align: center;"><strong>${d.country}</strong></div>` +
                 `<div style="text-align: left;">` +
-                `<strong>Year:</strong> ${year}<br/>` +
+                `<strong>Year:</strong> ${selectedYear}<br/>` +
                 `<strong>Events number:</strong> ${formatNum(d.events)}<br/>` +
                 `<strong>Fatalities:</strong> ${formatNum(d.fatalities)}` +
                 `</div>`
@@ -324,7 +325,7 @@ function renderSymbolicMapChart(container, datasets) {
                 event,
                 `<div style="text-align: center;"><strong>${d.country}</strong></div>` +
                 `<div style="text-align: left;">` +
-                `<strong>Year:</strong> ${year}<br/>` +
+                `<strong>Year:</strong> ${selectedYear}<br/>` +
                 `<strong>Events number:</strong> ${formatNum(d.events)}<br/>` +
                 `<strong>Fatalities:</strong> ${formatNum(d.fatalities)}` +
                 `</div>`
@@ -351,79 +352,67 @@ function renderSymbolicMapChart(container, datasets) {
           .attr('font-weight', 'bold')
           .attr('fill', '#000')
           .attr('opacity', 0.15)
-          .text(year);
+          .text(selectedYear);
       }
 
       // Inizializza con l'anno e tipo di evento selezionati
-      update(yearSelect.property('value'), eventSelect.property('value'));
+      update(years.length - 1, eventSelect.property('value'));
       
       // Aggiorna quando cambia l'anno
-      yearSelect.on('change', function() {
-        update(this.value, eventSelect.property('value'));
+      yearSlider.on('input', function() {
+        update(+this.value, eventSelect.property('value'));
       });
 
       // Aggiorna quando cambia il tipo di evento
       eventSelect.on('change', function() {
-        update(yearSelect.property('value'), this.value);
+        update(+yearSlider.property('value'), this.value);
       });
 
-      // Animation function
-      function toggleAnimation() {
+      // Speed slider event
+      speedSlider.on('input', function() {
+        const speed = +this.value;
+        speedLabel.text((speed / 1000).toFixed(1) + 's');
+        
+        // Se l'animazione è in corso, riavviala con la nuova velocità
         if (isPlaying) {
-          // Stop animation
+          clearInterval(animationInterval);
+          startAnimation(speed);
+        }
+      });
+
+      // Funzione per avviare l'animazione
+      function startAnimation(speed) {
+        animationInterval = setInterval(() => {
+          let currentIndex = +yearSlider.property('value');
+          currentIndex++;
+          
+          if (currentIndex >= years.length) {
+            currentIndex = 0; // Ricomincia dall'inizio
+          }
+          
+          yearSlider.property('value', currentIndex);
+          update(currentIndex, eventSelect.property('value'));
+        }, speed);
+      }
+
+      // Play/Stop button toggle
+      playBtn.on('click', function() {
+        if (isPlaying) {
+          // Stop
           clearInterval(animationInterval);
           animationInterval = null;
           isPlaying = false;
-          playBtn.html('▶ Play Animation');
+          playBtn.html('<i class="bi bi-play-fill"></i> Play');
           playBtn.classed('btn-primary', true).classed('btn-danger', false);
         } else {
-          // Start animation
+          // Play
           isPlaying = true;
-          playBtn.html('⏸ Pause Animation');
+          const speed = +speedSlider.property('value');
+          playBtn.html('<i class="bi bi-stop-fill"></i> Stop');
           playBtn.classed('btn-primary', false).classed('btn-danger', true);
-          
-          let currentIndex = years.indexOf(+yearSelect.property('value'));
-          
-          animationInterval = setInterval(() => {
-            currentIndex++;
-            if (currentIndex >= years.length) {
-              currentIndex = 0;
-            }
-            
-            const nextYear = years[currentIndex];
-            yearSelect.property('value', nextYear);
-            update(nextYear, eventSelect.property('value'));
-          }, animationSpeed);
+          startAnimation(speed);
         }
-      }
-
-      if (!playBtn.empty()) {
-        playBtn.on('click', toggleAnimation);
-      }
-
-      // Speed slider event listener
-      if (!speedSlider.empty()) {
-        speedSlider.on('input', function() {
-          animationSpeed = +this.value;
-          speedLabel.text((animationSpeed / 1000).toFixed(1) + 's');
-          
-          if (isPlaying) {
-            clearInterval(animationInterval);
-            let currentIndex = years.indexOf(+yearSelect.property('value'));
-            
-            animationInterval = setInterval(() => {
-              currentIndex++;
-              if (currentIndex >= years.length) {
-                currentIndex = 0;
-              }
-              
-              const nextYear = years[currentIndex];
-              yearSelect.property('value', nextYear);
-              update(nextYear, eventSelect.property('value'));
-            }, animationSpeed);
-          }
-        });
-      }
+      });
     })
     .catch(function(error) {
       console.error('Error loading GeoJSON:', error);

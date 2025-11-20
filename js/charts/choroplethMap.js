@@ -11,15 +11,11 @@ function renderChoroplethMap(container, datasets) {
     return;
   }
 
-  const yearSelect = root.select('#choropleth-year-select');
-  if (yearSelect.empty()) {
-    console.warn('Year select element #choropleth-year-select not found');
-    return;
-  }
-
+  const yearSlider = root.select('#choropleth-year-slider');
+  const yearLabel = root.select('#choropleth-year-slider-value');
   const playBtn = root.select('#choropleth-play-btn');
   const speedSlider = root.select('#choropleth-speed-slider');
-  const speedLabel = root.select('#choropleth-speed-label');
+  const speedLabel = root.select('#choropleth-speed-value');
   
 
   const zoomInBtn = root.select('#choropleth-zoom-in');
@@ -28,8 +24,7 @@ function renderChoroplethMap(container, datasets) {
 
 
   let animationInterval = null;
-  let isPlaying = false;
-  let animationSpeed = 800; 
+  let isPlaying = false; 
 
   const TOOLTIP_ID = 'choropleth-tooltip';
   let tooltip = d3.select(`#${TOOLTIP_ID}`);
@@ -134,15 +129,13 @@ function renderChoroplethMap(container, datasets) {
     return;
   }
 
+  // Configura slider
+  yearSlider
+    .attr('min', 0)
+    .attr('max', years.length - 1)
+    .attr('value', years.length - 1);
 
-  yearSelect
-    .selectAll('option')
-    .data(years)
-    .join('option')
-    .attr('value', d => d)
-    .text(d => d);
-
-  yearSelect.property('value', years[years.length - 1]);
+  yearLabel.text(years[years.length - 1]);
 
   
   const projection = d3.geoMercator()
@@ -201,10 +194,13 @@ const colorScale = d3.scaleThreshold()
   d3.json("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson")
     .then(function(topo) {
       
-      function update(year) {
+      function update(yearIndex) {
+        const selectedYear = years[yearIndex];
+        yearLabel.text(selectedYear);
+
         const dataMap = new Map();
         fatalitiesData
-          .filter(d => d.year === +year)
+          .filter(d => d.year === selectedYear)
           .forEach(d => {
             if (d.iso3) {
               dataMap.set(d.iso3, d.fatalities);
@@ -236,7 +232,7 @@ const colorScale = d3.scaleThreshold()
               showTooltip(
                 event,
                 `<div style="text-align: center;"><strong>${countryName}</strong></div>` +
-                `<strong>Year:</strong> ${year}<br/>` +
+                `<strong>Year:</strong> ${selectedYear}<br/>` +
                 `<strong>Civilian Fatalities:</strong> ${formatNum(value)}`
               );
             }
@@ -251,7 +247,7 @@ const colorScale = d3.scaleThreshold()
               showTooltip(
                 event,
                 `<div style="text-align: center;"><strong>${countryName}</strong></div>` +
-                `<strong>Year:</strong> ${year}<br/>` +
+                `<strong>Year:</strong> ${selectedYear}<br/>` +
                 `<strong>Civilian Fatalities:</strong> ${formatNum(value)}`
               );
             }
@@ -269,71 +265,62 @@ const colorScale = d3.scaleThreshold()
           .attr('font-weight', 'bold')
           .attr('fill', '#000')
           .attr('opacity', 0.15)
-          .text(year);
+          .text(selectedYear);
       }
 
-      update(yearSelect.property('value'));
-      
-      // Update when the year changes manually
-      yearSelect.on('change', function() {
-        update(this.value);
+      // Inizializza
+      update(years.length - 1);
+
+      // Slider event
+      yearSlider.on('input', function() {
+        update(+this.value);
       });
 
-      //Animation function
-      function toggleAnimation() {
+      // Speed slider event
+      speedSlider.on('input', function() {
+        const speed = +this.value;
+        speedLabel.text((speed / 1000).toFixed(1) + 's');
+        
+        // Se l'animazione è in corso, riavviala con la nuova velocità
         if (isPlaying) {
-          // Stop animation
+          clearInterval(animationInterval);
+          startAnimation(speed);
+        }
+      });
+
+      // Funzione per avviare l'animazione
+      function startAnimation(speed) {
+        animationInterval = setInterval(() => {
+          let currentIndex = +yearSlider.property('value');
+          currentIndex++;
+          
+          if (currentIndex >= years.length) {
+            currentIndex = 0; // Ricomincia dall'inizio
+          }
+          
+          yearSlider.property('value', currentIndex);
+          update(currentIndex);
+        }, speed);
+      }
+
+      // Play/Stop button toggle
+      playBtn.on('click', function() {
+        if (isPlaying) {
+          // Stop
           clearInterval(animationInterval);
           animationInterval = null;
           isPlaying = false;
-          playBtn.html('▶ Play Animation');
+          playBtn.html('<i class="bi bi-play-fill"></i> Play');
           playBtn.classed('btn-primary', true).classed('btn-danger', false);
         } else {
-          //Start animation 
+          // Play
           isPlaying = true;
-          playBtn.html('⏸ Pause Animation');
+          const speed = +speedSlider.property('value');
+          playBtn.html('<i class="bi bi-stop-fill"></i> Stop');
           playBtn.classed('btn-primary', false).classed('btn-danger', true);
-          
-          let currentIndex = years.indexOf(+yearSelect.property('value'));
-          
-          animationInterval = setInterval(() => {
-            currentIndex++;
-            if (currentIndex >= years.length) {
-              currentIndex = 0; 
-            }
-            
-            const nextYear = years[currentIndex];
-            yearSelect.property('value', nextYear);
-            update(nextYear);
-          }, animationSpeed);
+          startAnimation(speed);
         }
-      }
-      if (!playBtn.empty()) {
-        playBtn.on('click', toggleAnimation);
-      }
-
-      // Event listener per lo slider della velocità
-      if (!speedSlider.empty()) {
-        speedSlider.on('input', function() {
-          animationSpeed = +this.value;
-          speedLabel.text((animationSpeed / 1000).toFixed(1) + 's');
-          if (isPlaying) {
-            clearInterval(animationInterval);
-            let currentIndex = years.indexOf(+yearSelect.property('value'));
-            
-            animationInterval = setInterval(() => {
-              currentIndex++;
-              if (currentIndex >= years.length) {
-                currentIndex = 0;
-              }
-              
-              const nextYear = years[currentIndex];
-              yearSelect.property('value', nextYear);
-              update(nextYear);
-            }, animationSpeed);
-          }
-        });
-      }
+      });
     })
     .catch(function(error) {
       console.error('Error loading GeoJSON:', error);
