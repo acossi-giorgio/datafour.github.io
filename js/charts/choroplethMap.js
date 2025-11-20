@@ -17,6 +17,15 @@ function renderChoroplethMap(container, datasets) {
     return;
   }
 
+  const playBtn = root.select('#choropleth-play-btn');
+  const speedSlider = root.select('#choropleth-speed-slider');
+  const speedLabel = root.select('#choropleth-speed-label');
+
+  // Variabili per l'animazione
+  let animationInterval = null;
+  let isPlaying = false;
+  let animationSpeed = 800; // millisecondi per frame
+
   // Crea o recupera il tooltip centralizzato
   const TOOLTIP_ID = 'choropleth-tooltip';
   let tooltip = d3.select(`#${TOOLTIP_ID}`);
@@ -100,10 +109,10 @@ function renderChoroplethMap(container, datasets) {
   // Imposta l'anno più recente come default
   yearSelect.property('value', years[years.length - 1]);
 
-  // Map projection - focalizzata sul Medio Oriente
+  // Map projection - focalizzata sul Medio Oriente e Nord Africa (MEA)
   const projection = d3.geoMercator()
-    .scale(400)
-    .center([50, 30])
+    .scale(550)  // Zoom più stretto
+    .center([29, 25])  // Centro tra Medio Oriente e Nord Africa
     .translate([width / 2, height / 2]);
 
   const path = d3.geoPath().projection(projection);
@@ -118,23 +127,24 @@ function renderChoroplethMap(container, datasets) {
 
   function showTooltip(event, html) {
     tooltip
+      .html(html)
       .style('display', 'block')
-      .style('opacity', 1)
-      .html(html);
+      .style('opacity', 1);
+
+    // Usa clientX/clientY invece di pageX/pageY per posizionamento fisso
+    let x = event.clientX + 14;
+    let y = event.clientY + 16;
 
     const rect = tooltip.node().getBoundingClientRect();
     const vw = window.innerWidth;
     const vh = window.innerHeight;
 
-    let x = event.pageX + 14;
-    let y = event.pageY + 16;
-
     // Evita che il tooltip esca dai bordi
     if (x + rect.width > vw - 8) {
-      x = event.pageX - rect.width - 14;
+      x = event.clientX - rect.width - 14;
     }
     if (y + rect.height > vh - 8) {
-      y = event.pageY - rect.height - 14;
+      y = event.clientY - rect.height - 14;
     }
 
     tooltip.style('left', `${x}px`).style('top', `${y}px`);
@@ -176,6 +186,21 @@ function renderChoroplethMap(container, datasets) {
             const value = dataMap.get(d.id) || 0;
             return value > 0 ? 'pointer' : 'default';
           })
+          .on('mouseenter', (event, d) => {
+            const value = dataMap.get(d.id) || 0;
+            if (value > 0) {
+              const countryName = [...iso3Map.entries()].find(([_, iso]) => iso === d.id)?.[0] 
+                || d.properties?.name 
+                || d.id;
+              
+              showTooltip(
+                event,
+                `<div style="text-align: center;"><strong>${countryName}</strong></div>` +
+                `<strong>Year:</strong> ${year}<br/>` +
+                `<strong>Civilian Fatalities:</strong> ${formatNum(value)}`
+              );
+            }
+          })
           .on('mousemove', (event, d) => {
             const value = dataMap.get(d.id) || 0;
             if (value > 0) {
@@ -191,18 +216,91 @@ function renderChoroplethMap(container, datasets) {
               );
             }
           })
-          .on('mouseout', () => {
+          .on('mouseleave', () => {
             hideTooltip();
           });
+
+        // Aggiungi indicatore dell'anno corrente sulla mappa
+        g.selectAll('.year-label').remove();
+        g.append('text')
+          .attr('class', 'year-label')
+          .attr('x', width - 10)
+          .attr('y', height - 10)
+          .attr('text-anchor', 'end')
+          .attr('font-size', 48)
+          .attr('font-weight', 'bold')
+          .attr('fill', '#000')
+          .attr('opacity', 0.15)
+          .text(year);
       }
 
       // Inizializza con l'anno selezionato
       update(yearSelect.property('value'));
       
-      // Aggiorna quando cambia l'anno
+      // Aggiorna quando cambia l'anno manualmente
       yearSelect.on('change', function() {
         update(this.value);
       });
+
+      // Funzione per avviare/fermare l'animazione
+      function toggleAnimation() {
+        if (isPlaying) {
+          // Ferma l'animazione
+          clearInterval(animationInterval);
+          animationInterval = null;
+          isPlaying = false;
+          playBtn.html('▶ Play Animation');
+          playBtn.classed('btn-primary', true).classed('btn-danger', false);
+        } else {
+          // Avvia l'animazione
+          isPlaying = true;
+          playBtn.html('⏸ Pause Animation');
+          playBtn.classed('btn-primary', false).classed('btn-danger', true);
+          
+          let currentIndex = years.indexOf(+yearSelect.property('value'));
+          
+          animationInterval = setInterval(() => {
+            currentIndex++;
+            if (currentIndex >= years.length) {
+              currentIndex = 0; // Ricomincia dall'inizio
+            }
+            
+            const nextYear = years[currentIndex];
+            yearSelect.property('value', nextYear);
+            update(nextYear);
+          }, animationSpeed);
+        }
+      }
+
+      // Event listener per il bottone play/pause
+      if (!playBtn.empty()) {
+        playBtn.on('click', toggleAnimation);
+      }
+
+      // Event listener per lo slider della velocità
+      if (!speedSlider.empty()) {
+        speedSlider.on('input', function() {
+          animationSpeed = +this.value;
+          speedLabel.text((animationSpeed / 1000).toFixed(1) + 's');
+          
+          // Se l'animazione è in corso, riavviala con la nuova velocità
+          if (isPlaying) {
+            clearInterval(animationInterval);
+            let currentIndex = years.indexOf(+yearSelect.property('value'));
+            
+            animationInterval = setInterval(() => {
+              currentIndex++;
+              if (currentIndex >= years.length) {
+                currentIndex = 0;
+              }
+              
+              const nextYear = years[currentIndex];
+              yearSelect.property('value', nextYear);
+              update(nextYear);
+            }, animationSpeed);
+          }
+        });
+      }
     })
     .catch(function(error) {
       console.error('Error loading GeoJSON:', error);

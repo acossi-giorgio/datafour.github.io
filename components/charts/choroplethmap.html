@@ -5,9 +5,21 @@
 
   <div class="mb-3 text-center">
     <label for="choropleth-year-select" class="form-label fw-semibold">Select Year:</label>
-    <select id="choropleth-year-select" class="form-select d-inline-block w-auto">
+    <select id="choropleth-year-select" class="form-select d-inline-block w-auto mx-2">
       <option value="">Loading...</option>
     </select>
+    
+    <button id="choropleth-play-btn" class="btn btn-primary btn-sm mx-2">
+      ▶ Play Animation
+    </button>
+    
+    <div class="mt-2">
+      <label for="choropleth-speed-slider" class="form-label small">Animation Speed:</label>
+      <input type="range" id="choropleth-speed-slider" class="form-range d-inline-block" 
+             style="width: 150px; vertical-align: middle;" 
+             min="100" max="2000" value="800" step="100">
+      <span id="choropleth-speed-label" class="small ms-2">0.8s</span>
+    </div>
   </div>
 
   <div class="text-center">
@@ -17,7 +29,8 @@
   <div class="card-narrow">
     <p class="mt-2 mb-0 pt-2 text-muted small text-start">
       This map shows the number of reported civilian fatalities across Middle East and Africa countries. 
-      Select a year to see the distribution of casualties. Darker red indicates higher fatalities.
+      Select a year to see the distribution of casualties, or click "Play Animation" to see the evolution over time. 
+      Darker red indicates higher fatalities.
     </p>
   </div>
 </div>
