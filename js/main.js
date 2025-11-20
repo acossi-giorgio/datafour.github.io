@@ -32,6 +32,7 @@ async function init() {
   await loadComponent('symbolic-map-chart', 'components/charts/symbolic_map.html');
 
 
+  renderChart('grouped-bar-chart', renderGroupedBarChart, datasets);
   renderChart('stacked-100-chart', renderStacked100Chart, datasets);
   renderChart('heatmap-chart', renderHeatmapChart, datasets);
   renderChart('bar-horizontal-chart', renderBarHorizontalChart, datasets);
