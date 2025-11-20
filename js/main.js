@@ -6,7 +6,8 @@ async function init() {
     targetingCiviliansEvents: await loadCSV('mea_number_of_events_targeting_civilians_by_country_year.csv'),
     politicalViolenceEvents: await loadCSV('mea_number_of_political_violence_events_by_country_year.csv'),
     civilianFatalities: await loadCSV('mea_number_of_reported_civilian_fatalities_by_country_year.csv'),
-    meaAggregatedData: await loadCSV('mea_aggregated_data.csv')
+    meaAggregatedData: await loadCSV('mea_aggregated_data.csv'),
+    aggregatedMapData: await loadCSV('aggregated_map_data.csv')
   }
 
   await loadComponent('navbar-container', 'components/navbar.html');
@@ -28,8 +29,9 @@ async function init() {
   await loadComponent('boxplot-container', 'components/charts/box_plot.html');
   await loadComponent('lineplot-container', 'components/charts/line_plot.html');
   await loadComponent('ChoroplethMap-container', 'components/charts/choroplethmap.html');
+  await loadComponent('symbolic-map-chart', 'components/charts/symbolic_map.html');
 
-  renderChart('grouped-bar-chart', renderGroupedBarChart, datasets);
+
   renderChart('stacked-100-chart', renderStacked100Chart, datasets);
   renderChart('heatmap-chart', renderHeatmapChart, datasets);
   renderChart('bar-horizontal-chart', renderBarHorizontalChart, datasets);
@@ -40,6 +42,7 @@ async function init() {
   renderChart('box-plot-chart', renderBoxPlotChart, datasets);
   renderChart('lineplot-chart', renderLinePlotChart, datasets);
   renderChart('choropleth-chart', renderChoroplethMap, datasets);
+  renderChart('symbolic-map-chart', renderSymbolicMapChart, datasets);
 
   setupMobileNavAutoClose();
 }
