@@ -67,6 +67,20 @@ function renderChoroplethMap(container, datasets) {
     .attr('class', 'chart-root')
     .attr('transform', `translate(${margin.left},${margin.top})`);
 
+  // Aggiungi un gruppo per lo zoom
+  const mapGroup = g.append('g').attr('class', 'map-group');
+
+  // Configura lo zoom
+  const zoom = d3.zoom()
+    .scaleExtent([1, 8]) // Limita lo zoom tra 1x e 8x
+    .translateExtent([[0, 0], [width, height]]) // Limita lo spostamento
+    .on('zoom', (event) => {
+      mapGroup.attr('transform', event.transform);
+    });
+
+  // Applica lo zoom all'SVG
+  svg.call(zoom);
+
   // Verifica che i datasets necessari esistano
   if (!datasets.countries || !datasets.civilianFatalities) {
     console.error('Missing required datasets: countries or civilianFatalities');
@@ -117,9 +131,21 @@ function renderChoroplethMap(container, datasets) {
 
   const path = d3.geoPath().projection(projection);
 
-  // Color scale - rossi per le fatalities
-  const maxFatalities = d3.max(fatalitiesData, d => d.fatalities) || 1;
-  const colorScale = d3.scaleOrdinal(d3.schemeReds[9]);
+// Color scale - scala a soglie per differenze più nette
+const maxFatalities = d3.max(fatalitiesData, d => d.fatalities) || 1;
+const colorScale = d3.scaleThreshold()
+  .domain([1, 50, 100, 500, 1000, 5000, 10000, 20000])
+  .range([
+    '#ffd4d4',
+    '#f9b9b7',
+    '#f09e9a',
+    '#e6847d',
+    '#da695f',
+    '#cc4e41',
+    '#bc3123',
+    '#aa0000',
+    '#f81500ff'
+  ]);
 
   const formatNum = d3.format(',');
 
@@ -167,8 +193,8 @@ function renderChoroplethMap(container, datasets) {
             }
           });
 
-        // Disegna la mappa
-        g.selectAll('path.country')
+        // Disegna la mappa nel gruppo dedicato allo zoom
+        mapGroup.selectAll('path.country')
           .data(topo.features)
           .join('path')
           .attr('class', 'country')
