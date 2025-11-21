@@ -129,7 +129,6 @@ function renderChoroplethMap(container, datasets) {
     return;
   }
 
-  // Configura slider
   yearSlider
     .attr('min', 0)
     .attr('max', years.length - 1)
@@ -190,7 +189,6 @@ const colorScale = d3.scaleThreshold()
     tooltip.style('opacity', 0).style('display', 'none');
   }
 
-  // Carica GeoJSON
   d3.json("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson")
     .then(function(topo) {
       
@@ -284,34 +282,27 @@ const colorScale = d3.scaleThreshold()
           .attr('opacity', 0.15);
       }
 
-      // Inizializza
       update(years.length - 1);
-
-      // Slider event
       yearSlider.on('input', function() {
         update(+this.value);
       });
 
-      // Speed slider event
       speedSlider.on('input', function() {
         const speed = +this.value;
         speedLabel.text((speed / 1000).toFixed(1) + 's');
         
-        // Se l'animazione è in corso, riavviala con la nuova velocità
         if (isPlaying) {
           clearInterval(animationInterval);
           startAnimation(speed);
         }
       });
-
-      // Funzione per avviare l'animazione
       function startAnimation(speed) {
         animationInterval = setInterval(() => {
           let currentIndex = +yearSlider.property('value');
           currentIndex++;
           
           if (currentIndex >= years.length) {
-            currentIndex = 0; // Ricomincia dall'inizio
+            currentIndex = 0;
           }
           
           yearSlider.property('value', currentIndex);
@@ -319,17 +310,14 @@ const colorScale = d3.scaleThreshold()
         }, speed);
       }
 
-      // Play/Stop button toggle
       playBtn.on('click', function() {
         if (isPlaying) {
-          // Stop
           clearInterval(animationInterval);
           animationInterval = null;
           isPlaying = false;
           playBtn.html('<i class="bi bi-play-fill"></i> Play');
           playBtn.classed('btn-primary', true).classed('btn-danger', false);
         } else {
-          // Play
           isPlaying = true;
           const speed = +speedSlider.property('value');
           playBtn.html('<i class="bi bi-stop-fill"></i> Stop');

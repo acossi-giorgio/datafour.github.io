@@ -14,7 +14,6 @@ function renderSymbolicMapChart(container, datasets) {
   let animationInterval = null;
   let isPlaying = false;
 
-  // Crea o recupera il tooltip centralizzato
   const TOOLTIP_ID = 'symbolic-map-tooltip';
   let tooltip = d3.select(`#${TOOLTIP_ID}`);
   if (tooltip.empty()) {
@@ -56,7 +55,6 @@ function renderSymbolicMapChart(container, datasets) {
     .attr('transform', `translate(${margin.left},${margin.top})`);
   const mapGroup = g.append('g').attr('class', 'map-group');
 
-  // Setup zoom
   const zoom = d3.zoom()
     .scaleExtent([1, 8])
     .translateExtent([[0, 0], [width, height]])
@@ -66,30 +64,23 @@ function renderSymbolicMapChart(container, datasets) {
 
   svg.call(zoom);
 
-  // Verifica che i datasets necessari esistano
   if (!datasets.countries || !datasets.aggregatedMapData) {
     console.error('Missing required datasets: countries or aggregatedMapData');
     return;
   }
 
-  // Prepara i dati dei paesi MEA
   const countriesSet = new Set(datasets.countries.map(d => d.Country.trim()));
   const iso3Map = new Map(datasets.countries.map(d => [d.Country.trim(), d.iso3]));
-
-  // Funzione per parsare le coordinate con virgola come separatore decimale
   function parseCoordinate(coord) {
     if (!coord) return NaN;
     return parseFloat(coord.toString().replace(',', '.'));
   }
-
-  // Tipi di eventi da visualizzare con i loro colori
   const eventTypes = {
     'Shelling/artillery/missile attack': { color: '#d8a305ff', label: 'Shelling/Artillery/Missile' },
     'Air/drone strike': { color: '#d8a305ff', label: 'Air/Drone Strike' },
     'Remote explosive/landmine/IED': { color: '#d8a305ff', label: 'IED/Landmine' }
   };
 
-  // Prepara i dati degli eventi
   const eventsData = datasets.aggregatedMapData
     .map(d => ({
       country: d.COUNTRY?.trim() || '',
@@ -113,7 +104,6 @@ function renderSymbolicMapChart(container, datasets) {
 
   console.log('Filtered events data:', eventsData.length, 'events');
 
-  // Filtra gli anni nel range
   const years = filterYearsRange(
     [...new Set(eventsData.map(d => d.year))]
       .sort((a, b) => a - b)
@@ -124,7 +114,6 @@ function renderSymbolicMapChart(container, datasets) {
     return;
   }
 
-  // Seleziona i controlli dall'HTML
   const yearSlider = root.select('#symbolic-year-slider');
   const yearLabel = root.select('#symbolic-year-slider-value');
   
@@ -146,8 +135,6 @@ function renderSymbolicMapChart(container, datasets) {
   const zoomInBtn = root.select('#symbolic-zoom-in');
   const zoomOutBtn = root.select('#symbolic-zoom-out');
   const zoomResetBtn = root.select('#symbolic-zoom-reset');
-
-  // Setup zoom button handlers
   if (!zoomInBtn.empty()) {
     zoomInBtn.on('click', () => {
       svg.transition().duration(300).call(zoom.scaleBy, 1.3);
@@ -169,7 +156,6 @@ function renderSymbolicMapChart(container, datasets) {
     });
   }
 
-  // Popola il select degli anni
   yearSlider
     .attr('min', 0)
     .attr('max', years.length - 1)
@@ -177,7 +163,6 @@ function renderSymbolicMapChart(container, datasets) {
 
   yearLabel.text(years[years.length - 1]);
 
-  // Popola il select degli eventi
   eventSelect
     .selectAll('option')
     .data(Object.entries(eventTypes))
@@ -185,13 +170,11 @@ function renderSymbolicMapChart(container, datasets) {
     .attr('value', d => d[0])
     .text(d => d[1].label);
 
-  // Imposta il primo tipo di evento come default
   eventSelect.property('value', Object.keys(eventTypes)[0]);
 
-  // Map projection - focalizzata su Medio Oriente (Iraq, Siria, Yemen, Arabia Saudita)
   const projection = d3.geoMercator()
-    .scale(800)  // Zoom più stretto
-    .center([45, 27])  // Centro più a est, tra Iraq/Yemen/Arabia
+    .scale(800)
+    .center([45, 27])
     .translate([width / 2, height / 2]);
 
   const path = d3.geoPath().projection(projection);
@@ -225,34 +208,28 @@ function renderSymbolicMapChart(container, datasets) {
     tooltip.style('opacity', 0).style('display', 'none');
   }
 
-  // Carica GeoJSON
   d3.json("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson")
     .then(function(topo) {
       
-      // Crea prima il gruppo per la mappa base
       const baseMapGroup = mapGroup.append('g').attr('class', 'base-map-group');
       
-      // Poi il gruppo per gli spike (sopra la mappa)
       const spikesGroup = mapGroup.append('g').attr('class', 'spikes-group');
 
       function update(yearIndex, selectedEventType) {
         const selectedYear = years[yearIndex];
         yearLabel.text(selectedYear);
 
-        // Filtra gli eventi per anno e tipo di evento
         const yearEvents = eventsData.filter(d => 
           d.year === selectedYear && d.subEventType === selectedEventType
         );
         
         console.log(`Year ${selectedYear}, Event: ${selectedEventType}: ${yearEvents.length} events`);
 
-        // Calcola la scala per l'altezza degli spike basata solo sugli eventi del tipo selezionato
         const maxFatalitiesForType = d3.max(yearEvents, d => d.fatalities) || 1;
         const spikeHeightScale = d3.scaleSqrt()
           .domain([0, maxFatalitiesForType])
-          .range([0, 80]); // Altezza massima dello spike in pixel
+          .range([0, 80]);
 
-        // Disegna la mappa di base nel suo gruppo dedicato
         baseMapGroup.selectAll('path.country')
           .data(topo.features)
           .join('path')
@@ -262,7 +239,6 @@ function renderSymbolicMapChart(container, datasets) {
           .attr('stroke', '#fff')
           .attr('stroke-width', 0.5);
 
-        // Disegna gli spike
         const spikes = spikesGroup.selectAll('g.spike')
           .data(yearEvents, (d, i) => `${d.country}-${d.lat}-${d.lon}-${i}`);
 
@@ -277,10 +253,8 @@ function renderSymbolicMapChart(container, datasets) {
           .attr('class', 'spike')
           .style('opacity', 0);
 
-        // Unisci enter e update
         const spikesMerged = spikeEnter.merge(spikes);
         
-        // Applica transizione fade-in ai nuovi spike
         spikeEnter.transition()
           .duration(400)
           .style('opacity', 1);
@@ -291,12 +265,10 @@ function renderSymbolicMapChart(container, datasets) {
 
           const [x, y] = projection([d.lon, d.lat]);
           const h = spikeHeightScale(d.fatalities);
-          const spikeWidth = 7; // Larghezza base dello spike
+          const spikeWidth = 7;
           const spikeColor = eventTypes[d.subEventType].color;
 
           if (h > 0) {
-            // Crea lo spike path come nell'esempio Observable
-            // M${-width / 2},0 L0,${-length} L${width / 2},0
             const spikePath = `M${x - spikeWidth / 2},${y} L${x},${y - h} L${x + spikeWidth / 2},${y}`;
             
             spike.append('path')
@@ -309,7 +281,6 @@ function renderSymbolicMapChart(container, datasets) {
               .attr('opacity', 0.7);
           }
 
-          // Area interattiva più ampia per il tooltip
           spike.append('path')
             .attr('d', `M${x - spikeWidth},${y} L${x},${y - h - 5} L${x + spikeWidth},${y} Z`)
             .attr('fill', 'transparent')
@@ -325,7 +296,6 @@ function renderSymbolicMapChart(container, datasets) {
                 `</div>`
               );
               
-              // Evidenzia lo spike
               spike.select('.spike-path')
                 .attr('opacity', 1)
                 .attr('stroke-width', 1.5);
@@ -343,15 +313,13 @@ function renderSymbolicMapChart(container, datasets) {
             })
             .on('mouseleave', () => {
               hideTooltip();
-              
-              // Ripristina l'opacità normale
+            
               spike.select('.spike-path')
                 .attr('opacity', 0.7)
                 .attr('stroke-width', 1);
             });
         });
 
-        // Aggiungi indicatore dell'anno corrente sulla mappa
         const yearLabelSelection = mapGroup.selectAll('.year-label')
           .data([selectedYear]);
         
@@ -377,58 +345,48 @@ function renderSymbolicMapChart(container, datasets) {
           .duration(200)
           .attr('opacity', 0.15);
       }
-
-      // Inizializza con l'anno e tipo di evento selezionati
       update(years.length - 1, eventSelect.property('value'));
-      
-      // Aggiorna quando cambia l'anno
       yearSlider.on('input', function() {
         update(+this.value, eventSelect.property('value'));
       });
 
-      // Aggiorna quando cambia il tipo di evento
       eventSelect.on('change', function() {
         update(+yearSlider.property('value'), this.value);
       });
-
-      // Speed slider event
       speedSlider.on('input', function() {
         const speed = +this.value;
         speedLabel.text((speed / 1000).toFixed(1) + 's');
         
-        // Se l'animazione è in corso, riavviala con la nuova velocità
         if (isPlaying) {
           clearInterval(animationInterval);
           startAnimation(speed);
         }
       });
 
-      // Funzione per avviare l'animazione
       function startAnimation(speed) {
         animationInterval = setInterval(() => {
           let currentIndex = +yearSlider.property('value');
           currentIndex++;
           
           if (currentIndex >= years.length) {
-            currentIndex = 0; // Ricomincia dall'inizio
-          }
+              currentIndex = 0;
+            }
           
           yearSlider.property('value', currentIndex);
           update(currentIndex, eventSelect.property('value'));
         }, speed);
       }
 
-      // Play/Stop button toggle
       playBtn.on('click', function() {
         if (isPlaying) {
-          // Stop
+
           clearInterval(animationInterval);
           animationInterval = null;
           isPlaying = false;
           playBtn.html('<i class="bi bi-play-fill"></i> Play');
           playBtn.classed('btn-primary', true).classed('btn-danger', false);
         } else {
-          // Play
+
           isPlaying = true;
           const speed = +speedSlider.property('value');
           playBtn.html('<i class="bi bi-stop-fill"></i> Stop');

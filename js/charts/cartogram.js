@@ -61,7 +61,6 @@ function renderCartogram(container, datasets) {
 
   svg.selectAll('g.chart-root').remove();
   
-  // Aggiungi sfondo scuro
   svg.selectAll('rect.background').remove();
   svg.append('rect')
     .attr('class', 'background')
@@ -75,7 +74,6 @@ function renderCartogram(container, datasets) {
     .attr('transform', `translate(${margin.left},${margin.top})`);
   const mapGroup = g.append('g').attr('class', 'map-group');
 
-  // Setup zoom behavior
   const zoom = d3.zoom()
     .scaleExtent([1, 8])
     .translateExtent([[0, 0], [width, height]])
@@ -85,7 +83,6 @@ function renderCartogram(container, datasets) {
 
   svg.call(zoom);
 
-  // Zoom button handlers
   if (!zoomInBtn.empty()) {
     zoomInBtn.on('click', () => {
       svg.transition().duration(300).call(zoom.scaleBy, 1.3);
@@ -107,16 +104,13 @@ function renderCartogram(container, datasets) {
     });
   }
 
-  // Verifica datasets
   if (!datasets.countries || !datasets.politicalViolenceEvents) {
     return;
   }
 
-  // Prepara i dati dei paesi MEA
   const countriesSet = new Set(datasets.countries.map(d => d.Country.trim()));
   const iso3Map = new Map(datasets.countries.map(d => [d.Country.trim(), d.iso3]));
 
-  // Aggrega eventi per paese e anno (somma eventi dai due dataset)
   const aggregatedData = d3.rollup(
     datasets.politicalViolenceEvents,
     v => d3.sum(v, d => +d.EVENTS || 0),
@@ -124,7 +118,6 @@ function renderCartogram(container, datasets) {
     d => +d.YEAR
   );
 
-  // Converti in array e filtra
   const eventsData = [];
   aggregatedData.forEach((yearMap, country) => {
     yearMap.forEach((events, year) => {
@@ -139,7 +132,6 @@ function renderCartogram(container, datasets) {
     });
   });
 
-  // Filtra anni nel range
   const years = filterYearsRange(
     [...new Set(eventsData.map(d => d.year))].sort((a, b) => a - b)
   );
@@ -149,7 +141,6 @@ function renderCartogram(container, datasets) {
     return;
   }
 
-  // Configura slider
   yearSlider
     .attr('min', 0)
     .attr('max', years.length - 1)
@@ -157,7 +148,6 @@ function renderCartogram(container, datasets) {
 
   yearLabel.text(years[years.length - 1]);
 
-  // Map projection - zoom sulla zona con più eventi (Medio Oriente centrale)
   const projection = d3.geoMercator()
     .scale(1200)
     .center([42, 33])
@@ -165,17 +155,14 @@ function renderCartogram(container, datasets) {
 
   const path = d3.geoPath().projection(projection);
 
-  // Color scale per eventi - gradiente arancione chiaro a scuro
   const maxEvents = d3.max(eventsData, d => d.events) || 1;
   const colorScale = d3.scaleSequential()
     .domain([0, maxEvents])
-    .interpolator(d3.interpolateRgb("#ffeaa7", "#d63031")); // Arancione chiaro a scuro
+    .interpolator(d3.interpolateRgb("#ffeaa7", "#d63031"));
 
-  // Scala per la dimensione delle bolle
   const radiusScale = d3.scaleSqrt()
     .domain([0, maxEvents])
-    .range([0, 40]); // Raggio da 0 a 40 pixel
-
+    .range([0, 40]);
   const formatNum = d3.format(',');
 
   function showTooltip(event, html) {
@@ -205,21 +192,16 @@ function renderCartogram(container, datasets) {
     tooltip.style('opacity', 0).style('display', 'none');
   }
 
-  // Carica GeoJSON
   d3.json("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson")
     .then(function(topo) {
       
       function update(yearIndex) {
         const selectedYear = years[yearIndex];
         yearLabel.text(selectedYear);
-
-        // Filtra dati per l'anno selezionato
         const yearData = eventsData.filter(d => d.year === selectedYear);
 
-        // Crea set di iso3 dei paesi MEA
         const meaIso3Set = new Set(Array.from(iso3Map.values()));
 
-        // Disegna la mappa base (tutti i paesi in grigio chiaro)
         mapGroup.selectAll('path.country')
           .data(topo.features)
           .join('path')
@@ -229,7 +211,6 @@ function renderCartogram(container, datasets) {
           .attr('stroke', '#4a5459')
           .attr('stroke-width', 0.5);
 
-        // Calcola centroidi per ogni paese con dati
         const bubbleData = yearData
           .filter(d => d.iso3)
           .map(d => {
@@ -246,7 +227,6 @@ function renderCartogram(container, datasets) {
           })
           .filter(d => d && !isNaN(d.x) && !isNaN(d.y));
 
-        // Disegna le bolle
         mapGroup.selectAll('circle.bubble')
           .data(bubbleData, d => d.iso3)
           .join(
@@ -283,7 +263,6 @@ function renderCartogram(container, datasets) {
               `<strong>Political Violence Events:</strong> ${formatNum(d.events)}`
             );
             
-            // Evidenzia la bolla
             d3.select(event.currentTarget)
               .attr('opacity', 1);
           })
@@ -298,12 +277,10 @@ function renderCartogram(container, datasets) {
           .on('mouseleave', (event) => {
             hideTooltip();
             
-            // Ripristina l'opacità normale
             d3.select(event.currentTarget)
               .attr('opacity', 0.7);
           });
 
-        // Aggiungi anno sulla mappa
         g.selectAll('.year-label').remove();
         g.append('text')
           .attr('class', 'year-label')
@@ -317,34 +294,32 @@ function renderCartogram(container, datasets) {
           .text(selectedYear);
       }
 
-      // Inizializza
       update(years.length - 1);
 
-      // Slider event
+
       yearSlider.on('input', function() {
         update(+this.value);
       });
 
-      // Speed slider event
+
       speedSlider.on('input', function() {
         const speed = +this.value;
         speedLabel.text((speed / 1000).toFixed(1) + 's');
         
-        // Se l'animazione è in corso, riavviala con la nuova velocità
         if (isPlaying) {
           clearInterval(animationInterval);
           startAnimation(speed);
         }
       });
 
-      // Funzione per avviare l'animazione
+
       function startAnimation(speed) {
         animationInterval = setInterval(() => {
           let currentIndex = +yearSlider.property('value');
           currentIndex++;
           
           if (currentIndex >= years.length) {
-            currentIndex = 0; // Ricomincia dall'inizio
+            currentIndex = 0;
           }
           
           yearSlider.property('value', currentIndex);
@@ -352,17 +327,15 @@ function renderCartogram(container, datasets) {
         }, speed);
       }
 
-      // Play/Stop button toggle
       playBtn.on('click', function() {
         if (isPlaying) {
-          // Stop
           clearInterval(animationInterval);
           animationInterval = null;
           isPlaying = false;
           playBtn.html('<i class="bi bi-play-fill"></i> Play');
           playBtn.classed('btn-primary', true).classed('btn-danger', false);
         } else {
-          // Play
+
           isPlaying = true;
           const speed = +speedSlider.property('value');
           playBtn.html('<i class="bi bi-stop-fill"></i> Stop');
