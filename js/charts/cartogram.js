@@ -332,13 +332,13 @@ function renderCartogram(container, datasets) {
           clearInterval(animationInterval);
           animationInterval = null;
           isPlaying = false;
-          playBtn.html('<i class="bi bi-play-fill"></i> Play Animation');
+          playBtn.html('<i class="bi bi-play-fill"></i> Play');
           playBtn.classed('btn-primary', true).classed('btn-danger', false);
         } else {
           // Play
           isPlaying = true;
           const speed = +speedSlider.property('value');
-          playBtn.html('<i class="bi bi-stop-fill"></i> Stop Animation');
+          playBtn.html('<i class="bi bi-stop-fill"></i> Stop');
           playBtn.classed('btn-primary', false).classed('btn-danger', true);
           startAnimation(speed);
         }
