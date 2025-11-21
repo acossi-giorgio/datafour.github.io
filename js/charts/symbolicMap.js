@@ -266,14 +266,24 @@ function renderSymbolicMapChart(container, datasets) {
         const spikes = spikesGroup.selectAll('g.spike')
           .data(yearEvents, (d, i) => `${d.country}-${d.lat}-${d.lon}-${i}`);
 
-        spikes.exit().remove();
+        spikes.exit()
+          .transition()
+          .duration(300)
+          .style('opacity', 0)
+          .remove();
 
         const spikeEnter = spikes.enter()
           .append('g')
-          .attr('class', 'spike');
+          .attr('class', 'spike')
+          .style('opacity', 0);
 
         // Unisci enter e update
         const spikesMerged = spikeEnter.merge(spikes);
+        
+        // Applica transizione fade-in ai nuovi spike
+        spikeEnter.transition()
+          .duration(400)
+          .style('opacity', 1);
 
         spikesMerged.each(function(d) {
           const spike = d3.select(this);
@@ -342,8 +352,17 @@ function renderSymbolicMapChart(container, datasets) {
         });
 
         // Aggiungi indicatore dell'anno corrente sulla mappa
-        mapGroup.selectAll('.year-label').remove();
-        mapGroup.append('text')
+        const yearLabelSelection = mapGroup.selectAll('.year-label')
+          .data([selectedYear]);
+        
+        yearLabelSelection.exit()
+          .transition()
+          .duration(200)
+          .attr('opacity', 0)
+          .remove();
+        
+        yearLabelSelection.enter()
+          .append('text')
           .attr('class', 'year-label')
           .attr('x', width - 10)
           .attr('y', height - 10)
@@ -351,8 +370,12 @@ function renderSymbolicMapChart(container, datasets) {
           .attr('font-size', 48)
           .attr('font-weight', 'bold')
           .attr('fill', '#000')
-          .attr('opacity', 0.15)
-          .text(selectedYear);
+          .attr('opacity', 0)
+          .merge(yearLabelSelection)
+          .text(d => d)
+          .transition()
+          .duration(200)
+          .attr('opacity', 0.15);
       }
 
       // Inizializza con l'anno e tipo di evento selezionati

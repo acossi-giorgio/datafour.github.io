@@ -211,11 +211,14 @@ const colorScale = d3.scaleThreshold()
           .join('path')
           .attr('class', 'country')
           .attr('d', path)
+          .transition()
+          .duration(400)
           .attr('fill', function(d) {
             const value = dataMap.get(d.id) || 0;
             if (value === 0) return '#e0e0e0';
             return colorScale(value);
           })
+          .selection()
           .attr('stroke', '#fff')
           .attr('stroke-width', 0.5)
           .style('cursor', d => {
@@ -255,8 +258,17 @@ const colorScale = d3.scaleThreshold()
           .on('mouseleave', () => {
             hideTooltip();
           });
-        g.selectAll('.year-label').remove();
-        g.append('text')
+        const yearLabelSelection = g.selectAll('.year-label')
+          .data([selectedYear]);
+        
+        yearLabelSelection.exit()
+          .transition()
+          .duration(200)
+          .attr('opacity', 0)
+          .remove();
+        
+        yearLabelSelection.enter()
+          .append('text')
           .attr('class', 'year-label')
           .attr('x', width - 10)
           .attr('y', height - 10)
@@ -264,8 +276,12 @@ const colorScale = d3.scaleThreshold()
           .attr('font-size', 48)
           .attr('font-weight', 'bold')
           .attr('fill', '#000')
-          .attr('opacity', 0.15)
-          .text(selectedYear);
+          .attr('opacity', 0)
+          .merge(yearLabelSelection)
+          .text(d => d)
+          .transition()
+          .duration(200)
+          .attr('opacity', 0.15);
       }
 
       // Inizializza

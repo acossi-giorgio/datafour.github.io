@@ -16,6 +16,10 @@ function renderCartogram(container, datasets) {
   const playBtn = root.select('#cartogram-play-btn');
   const speedSlider = root.select('#cartogram-speed-slider');
   const speedLabel = root.select('#cartogram-speed-value');
+  
+  const zoomInBtn = root.select('#cartogram-zoom-in');
+  const zoomOutBtn = root.select('#cartogram-zoom-out');
+  const zoomResetBtn = root.select('#cartogram-zoom-reset');
 
   let animationInterval = null;
   let isPlaying = false;
@@ -69,10 +73,42 @@ function renderCartogram(container, datasets) {
     .append('g')
     .attr('class', 'chart-root')
     .attr('transform', `translate(${margin.left},${margin.top})`);
+  const mapGroup = g.append('g').attr('class', 'map-group');
+
+  // Setup zoom behavior
+  const zoom = d3.zoom()
+    .scaleExtent([1, 8])
+    .translateExtent([[0, 0], [width, height]])
+    .on('zoom', (event) => {
+      mapGroup.attr('transform', event.transform);
+    });
+
+  svg.call(zoom);
+
+  // Zoom button handlers
+  if (!zoomInBtn.empty()) {
+    zoomInBtn.on('click', () => {
+      svg.transition().duration(300).call(zoom.scaleBy, 1.3);
+    });
+  }
+
+  if (!zoomOutBtn.empty()) {
+    zoomOutBtn.on('click', () => {
+      svg.transition().duration(300).call(zoom.scaleBy, 0.7);
+    });
+  }
+
+  if (!zoomResetBtn.empty()) {
+    zoomResetBtn.on('click', () => {
+      svg.transition().duration(500).call(
+        zoom.transform,
+        d3.zoomIdentity.translate(0, 0).scale(1)
+      );
+    });
+  }
 
   // Verifica datasets
-  if (!datasets.countries || !datasets.targetingCiviliansEvents || !datasets.politicalViolenceEvents) {
-    console.error('Missing required datasets: countries, targetingCiviliansEvents, or politicalViolenceEvents');
+  if (!datasets.countries || !datasets.politicalViolenceEvents) {
     return;
   }
 
@@ -80,15 +116,9 @@ function renderCartogram(container, datasets) {
   const countriesSet = new Set(datasets.countries.map(d => d.Country.trim()));
   const iso3Map = new Map(datasets.countries.map(d => [d.Country.trim(), d.iso3]));
 
-  // Combina i due dataset
-  const combinedData = [
-    ...datasets.targetingCiviliansEvents,
-    ...datasets.politicalViolenceEvents
-  ];
-
   // Aggrega eventi per paese e anno (somma eventi dai due dataset)
   const aggregatedData = d3.rollup(
-    combinedData,
+    datasets.politicalViolenceEvents,
     v => d3.sum(v, d => +d.EVENTS || 0),
     d => d.COUNTRY,
     d => +d.YEAR
@@ -190,7 +220,7 @@ function renderCartogram(container, datasets) {
         const meaIso3Set = new Set(Array.from(iso3Map.values()));
 
         // Disegna la mappa base (tutti i paesi in grigio chiaro)
-        g.selectAll('path.country')
+        mapGroup.selectAll('path.country')
           .data(topo.features)
           .join('path')
           .attr('class', 'country')
@@ -217,7 +247,7 @@ function renderCartogram(container, datasets) {
           .filter(d => d && !isNaN(d.x) && !isNaN(d.y));
 
         // Disegna le bolle
-        g.selectAll('circle.bubble')
+        mapGroup.selectAll('circle.bubble')
           .data(bubbleData, d => d.iso3)
           .join(
             enter => enter.append('circle')
@@ -226,8 +256,7 @@ function renderCartogram(container, datasets) {
               .attr('cy', d => d.y)
               .attr('r', 0)
               .attr('fill', d => colorScale(d.events))
-              .attr('stroke', '#fff')
-              .attr('stroke-width', 1.5)
+              .attr('stroke', 'none')
               .attr('opacity', 0.7)
               .style('cursor', 'pointer')
               .call(enter => enter.transition()
@@ -251,20 +280,19 @@ function renderCartogram(container, datasets) {
               event,
               `<div style="text-align: center;"><strong>${d.country}</strong></div>` +
               `<strong>Year:</strong> ${selectedYear}<br/>` +
-              `<strong>Violence Events:</strong> ${formatNum(d.events)}`
+              `<strong>Political Violence Events:</strong> ${formatNum(d.events)}`
             );
             
             // Evidenzia la bolla
             d3.select(event.currentTarget)
-              .attr('opacity', 1)
-              .attr('stroke-width', 2.5);
+              .attr('opacity', 1);
           })
           .on('mousemove', (event, d) => {
             showTooltip(
               event,
               `<div style="text-align: center;"><strong>${d.country}</strong></div>` +
               `<strong>Year:</strong> ${selectedYear}<br/>` +
-              `<strong>Violence Events:</strong> ${formatNum(d.events)}`
+              `<strong>Political Violence Events:</strong> ${formatNum(d.events)}`
             );
           })
           .on('mouseleave', (event) => {
@@ -272,8 +300,7 @@ function renderCartogram(container, datasets) {
             
             // Ripristina l'opacità normale
             d3.select(event.currentTarget)
-              .attr('opacity', 0.7)
-              .attr('stroke-width', 1.5);
+              .attr('opacity', 0.7);
           });
 
         // Aggiungi anno sulla mappa
