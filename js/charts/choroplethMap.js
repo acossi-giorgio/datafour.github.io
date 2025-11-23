@@ -191,6 +191,45 @@ const colorScale = d3.scaleThreshold()
 
   d3.json("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson")
     .then(function(topo) {
+
+      const legendData = [
+        { value: "1–49", color: "#ffd4d4" },
+        { value: "50–99", color: "#f9b9b7" },
+        { value: "100–499", color: "#f09e9a" },
+        { value: "500–999", color: "#e6847d" },
+        { value: "1,000–4,999", color: "#da695f" },
+        { value: "5,000–9,999", color: "#cc4e41" },
+        { value: "10,000–19,999", color: "#bc3123" },
+        { value: "20,000+", color: "#aa0000" }
+      ];
+
+      const legend = svg.append("g")
+        .attr("class", "legend")
+        .attr("transform", `translate(${margin.left}, ${height + margin.top -10})`);
+
+      legend.selectAll("legend-item")
+        .data(legendData)
+        .enter()
+        .append("g")
+        .attr("class", "legend-item")
+        .attr("transform", (d, i) => `translate(${i * 120}, 0)`)
+        .each(function(d) {
+          const g = d3.select(this);
+          g.append("rect")
+            .attr("width", 16)
+            .attr("height", 16)
+            .attr("fill", d.color)
+            .attr("stroke", "#333")
+            .attr('stroke-width', 0.5);
+
+          g.append("text")
+            .attr("x", 20)
+            .attr("y", 10)
+            .attr('alignment-baseline', 'middle')
+            .style('font-size', '14px')
+            .style('font-family', 'Roboto Slab, serif')
+            .text(d.value);
+        });
       
       function update(yearIndex) {
         const selectedYear = years[yearIndex];
