@@ -194,7 +194,71 @@ function renderCartogram(container, datasets) {
 
   d3.json("https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson")
     .then(function(topo) {
-      
+      // --- Legend (use bubble chart colors, spaced by text width) ---
+      // Create legend bins based on maxEvents
+      const legendSteps = 6;
+      const breaks = d3.range(legendSteps).map(i => Math.round(i / (legendSteps - 1) * maxEvents));
+
+      const legendData = breaks.map((b, i) => {
+        let label;
+        if (i === 0) label = '0';
+        else if (i === legendSteps - 1) label = d3.format(',')(b) + '+';
+        else label = d3.format(',')(breaks[i - 1] + 1) + '–' + d3.format(',')(b);
+
+        // representative value for color: midpoint of the bin (or 0 for first)
+        const rep = i === 0 ? 0 : Math.round((breaks[i - 1] + b) / 2);
+        return { value: label, color: colorScale(rep) };
+      });
+
+      const legend = svg.append('g')
+        .attr('class', 'legend')
+        // position will be adjusted after measuring items to allow centering
+        .attr('transform', `translate(0, ${height + margin.top - 465})`);
+
+      const rectSize = 16;
+      const textPadding = 8;
+      const gapBetweenTexts = 30;
+
+      const items = legend.selectAll('.legend-item')
+        .data(legendData)
+        .enter()
+        .append('g')
+        .attr('class', 'legend-item');
+
+      items.append('rect')
+        .attr('width', rectSize)
+        .attr('height', rectSize)
+        .attr('fill', d => d.color)
+        .attr('stroke', '#fff')
+        .attr('stroke-width', 0.5);
+
+      items.append('text')
+        .attr('x', rectSize + textPadding)
+        .attr('y', rectSize / 2)
+        .attr('alignment-baseline', 'middle')
+        .style('font-size', '12px')
+        .style('font-family', 'Roboto Slab, serif')
+        .style('fill', '#fff')
+        .text(d => d.value);
+
+      // layout groups so gap between end of text and start of next group is constant
+      let lx = 0;
+      items.each(function() {
+        const g = d3.select(this);
+        const txt = g.select('text').node();
+        const bbox = txt.getBBox();
+        const groupWidth = rectSize + textPadding + bbox.width;
+        g.attr('transform', `translate(${lx}, 0)`);
+        lx += groupWidth + gapBetweenTexts;
+      });
+
+      // center legend horizontally within available chart width
+      const totalLegendWidth = lx - gapBetweenTexts; // remove last added gap
+      const startX = margin.left + Math.max(0, (width - totalLegendWidth) / 2);
+      legend.attr('transform', `translate(${startX}, ${height + margin.top - 465})`);
+
+      // --- end legend ---
+
       function update(yearIndex) {
         const selectedYear = years[yearIndex];
         yearLabel.text(selectedYear);

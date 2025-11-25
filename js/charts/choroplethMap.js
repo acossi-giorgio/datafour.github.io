@@ -144,11 +144,7 @@ function renderChoroplethMap(container, datasets) {
 
   const path = d3.geoPath().projection(projection);
 
-
-const maxFatalities = d3.max(fatalitiesData, d => d.fatalities) || 1;
-const colorScale = d3.scaleThreshold()
-  .domain([1, 50, 100, 500, 1000, 5000, 10000, 20000])
-  .range([
+const gradient = [
     '#ffd4d4',
     '#f9b9b7',
     '#f09e9a',
@@ -158,7 +154,12 @@ const colorScale = d3.scaleThreshold()
     '#bc3123',
     '#aa0000',
     '#f81500ff'
-  ]);
+]
+
+const maxFatalities = d3.max(fatalitiesData, d => d.fatalities) || 1;
+const colorScale = d3.scaleThreshold()
+  .domain([1, 50, 100, 500, 1000, 5000, 10000, 20000])
+  .range(gradient);
 
   const formatNum = d3.format(',');
 
@@ -193,43 +194,62 @@ const colorScale = d3.scaleThreshold()
     .then(function(topo) {
 
       const legendData = [
-        { value: "1–49", color: "#ffd4d4" },
-        { value: "50–99", color: "#f9b9b7" },
-        { value: "100–499", color: "#f09e9a" },
-        { value: "500–999", color: "#e6847d" },
-        { value: "1,000–4,999", color: "#da695f" },
-        { value: "5,000–9,999", color: "#cc4e41" },
-        { value: "10,000–19,999", color: "#bc3123" },
-        { value: "20,000+", color: "#aa0000" }
+        { value: "≤1", color: gradient[0] },
+        { value: "1-49", color: gradient[1] },
+        { value: "50–99", color: gradient[2] },
+        { value: "100–499", color: gradient[3] },
+        { value: "500–999", color: gradient[4] },
+        { value: "1,000–4,999", color: gradient[5] },
+        { value: "5,000–9,999", color: gradient[6] },
+        { value: "10,000–19,999", color: gradient[7] },
+        { value: "20,000+", color: gradient[8] }
       ];
 
       const legend = svg.append("g")
         .attr("class", "legend")
-        .attr("transform", `translate(${margin.left}, ${height + margin.top -10})`);
+        // position will be adjusted after measuring items to allow centering
+        .attr("transform", `translate(0, ${height + margin.top - 465})`);
 
-      legend.selectAll("legend-item")
+      const rectSize = 16;
+      const textPadding = 8; 
+      const gapBetweenTexts = 30; 
+
+      const items = legend.selectAll('.legend-item')
         .data(legendData)
         .enter()
-        .append("g")
-        .attr("class", "legend-item")
-        .attr("transform", (d, i) => `translate(${i * 120}, 0)`)
-        .each(function(d) {
-          const g = d3.select(this);
-          g.append("rect")
-            .attr("width", 16)
-            .attr("height", 16)
-            .attr("fill", d.color)
-            .attr("stroke", "#333")
-            .attr('stroke-width', 0.5);
+        .append('g')
+        .attr('class', 'legend-item');
 
-          g.append("text")
-            .attr("x", 20)
-            .attr("y", 10)
-            .attr('alignment-baseline', 'middle')
-            .style('font-size', '14px')
-            .style('font-family', 'Roboto Slab, serif')
-            .text(d.value);
-        });
+      items.append('rect')
+        .attr('width', rectSize)
+        .attr('height', rectSize)
+        .attr('fill', d => d.color)
+        .attr('stroke', '#333')
+        .attr('stroke-width', 0.5);
+
+      items.append('text')
+        .attr('x', rectSize + textPadding)
+        .attr('y', rectSize / 2)
+        .attr('alignment-baseline', 'middle')
+        .style('font-size', '12px')
+        .style('font-family', 'Roboto Slab, serif')
+        .text(d => d.value);
+
+      let x = 0;
+      items.each(function() {
+        const g = d3.select(this);
+        const textNode = g.select('text').node();
+        const textBBox = textNode.getBBox();
+        const groupWidth = rectSize + textPadding + textBBox.width;
+
+        g.attr('transform', `translate(${x}, 0)`);
+        x += groupWidth + gapBetweenTexts;
+      });
+
+      // center legend horizontally within available chart width
+      const totalLegendWidth = x - gapBetweenTexts; // subtract last gap
+      const startX = margin.left + Math.max(0, (width - totalLegendWidth) / 2);
+      legend.attr('transform', `translate(${startX}, ${height + margin.top - 465})`);
       
       function update(yearIndex) {
         const selectedYear = years[yearIndex];
