@@ -225,10 +225,12 @@ function renderSymbolicMapChart(container, datasets) {
         
         console.log(`Year ${selectedYear}, Event: ${selectedEventType}: ${yearEvents.length} events`);
 
-        const maxFatalitiesForType = d3.max(yearEvents, d => d.fatalities) || 1;
+        const maxFatalitiesForYear = d3.max(yearEvents, d => d.fatalities) || 1;
         const spikeHeightScale = d3.scaleSqrt()
-          .domain([0, maxFatalitiesForType])
+          .domain([0, maxFatalitiesForYear])
           .range([0, 80]);
+
+        updateLegend(yearIndex, selectedEventType);
 
         baseMapGroup.selectAll('path.country')
           .data(topo.features)
@@ -244,7 +246,7 @@ function renderSymbolicMapChart(container, datasets) {
 
         spikes.exit()
           .transition()
-          .duration(300)
+          .duration(500)
           .style('opacity', 0)
           .remove();
 
@@ -256,33 +258,55 @@ function renderSymbolicMapChart(container, datasets) {
         const spikesMerged = spikeEnter.merge(spikes);
         
         spikeEnter.transition()
-          .duration(400)
+          .duration(500)
           .style('opacity', 1);
 
+        const mapSpikeWidth = 7;
+        
         spikesMerged.each(function(d) {
           const spike = d3.select(this);
-          spike.selectAll('*').remove();
+          const existingPath = spike.select('.spike-path');
+          const isNewSpike = existingPath.empty();
+          
+          if (isNewSpike) {
+            spike.selectAll('*').remove();
+          }
 
           const [x, y] = projection([d.lon, d.lat]);
           const h = spikeHeightScale(d.fatalities);
-          const spikeWidth = 7;
           const spikeColor = eventTypes[d.subEventType].color;
 
           if (h > 0) {
-            const spikePath = `M${x - spikeWidth / 2},${y} L${x},${y - h} L${x + spikeWidth / 2},${y}`;
+            const targetPath = `M${x - mapSpikeWidth / 2},${y} L${x},${y - h} L${x + mapSpikeWidth / 2},${y} Z`;
             
-            spike.append('path')
-              .attr('class', 'spike-path')
-              .attr('d', spikePath)
-              .attr('fill', spikeColor)
-              .attr('stroke', spikeColor)
-              .attr('stroke-width', 1)
-              .attr('stroke-linejoin', 'round')
-              .attr('opacity', 0.7);
+            if (isNewSpike) {
+              const startPath = `M${x - mapSpikeWidth / 2},${y} L${x},${y} L${x + mapSpikeWidth / 2},${y} Z`;
+              
+              spike.append('path')
+                .attr('class', 'spike-path')
+                .attr('d', startPath)
+                .attr('fill', spikeColor)
+                .attr('stroke', spikeColor)
+                .attr('stroke-width', 1.5)
+                .attr('stroke-linejoin', 'miter')
+                .attr('stroke-miterlimit', 10)
+                .attr('opacity', 0.7)
+                .transition()
+                .duration(500)
+                .attr('d', targetPath);
+            } else {
+              existingPath
+                .transition()
+                .duration(500)
+                .attr('d', targetPath);
+            }
           }
 
+          spike.selectAll('path.hover-area').remove();
+          
           spike.append('path')
-            .attr('d', `M${x - spikeWidth},${y} L${x},${y - h - 5} L${x + spikeWidth},${y} Z`)
+            .attr('class', 'hover-area')
+            .attr('d', `M${x - mapSpikeWidth},${y} L${x},${y - h - 5} L${x + mapSpikeWidth},${y} Z`)
             .attr('fill', 'transparent')
             .style('cursor', 'pointer')
             .on('mouseenter', (event) => {
@@ -298,7 +322,7 @@ function renderSymbolicMapChart(container, datasets) {
               
               spike.select('.spike-path')
                 .attr('opacity', 1)
-                .attr('stroke-width', 1.5);
+                .attr('stroke-width', 2.5);
             })
             .on('mousemove', (event) => {
               showTooltip(
@@ -316,7 +340,7 @@ function renderSymbolicMapChart(container, datasets) {
             
               spike.select('.spike-path')
                 .attr('opacity', 0.7)
-                .attr('stroke-width', 1);
+                .attr('stroke-width', 1.5);
             });
         });
 
@@ -345,7 +369,94 @@ function renderSymbolicMapChart(container, datasets) {
           .duration(200)
           .attr('opacity', 0.15);
       }
+
+      const legendGroup = g.append('g')
+        .attr('class', 'legend')
+        .attr('transform', `translate(10, ${height - 20})`);
+
+      const spikeColor = Object.values(eventTypes)[0].color;
+      const legendSpikeWidth = 7;
+      const itemSpacing = 60;
+      
+      const legendHeightRange = 80;
+
+      function updateLegend(yearIndex, selectedEventType) {
+        const selectedYear = years[yearIndex];
+        const yearEvents = eventsData.filter(d => 
+          d.year === selectedYear && d.subEventType === selectedEventType
+        );
+
+        const maxFatalitiesForYear = d3.max(yearEvents, d => d.fatalities) || 1;
+        const legendScale = d3.scaleSqrt()
+          .domain([0, maxFatalitiesForYear])
+          .range([0, legendHeightRange]);
+        const legendValues = [
+          10,
+          50,
+          100,
+          Math.round(maxFatalitiesForYear * 0.3),
+          Math.round(maxFatalitiesForYear * 0.6),
+          maxFatalitiesForYear
+        ].filter((v, i, arr) => v <= maxFatalitiesForYear && v > 0 && arr.indexOf(v) === i)
+         .sort((a, b) => a - b)
+         .slice(0, 6);
+
+        const legendItems = legendGroup.selectAll('g.legend-item')
+          .data(legendValues, d => d);
+
+        legendItems.exit()
+          .transition()
+          .duration(500)
+          .style('opacity', 0)
+          .remove();
+
+        const legendEnter = legendItems.enter()
+          .append('g')
+          .attr('class', 'legend-item')
+          .style('opacity', 0);
+
+        const legendMerged = legendEnter.merge(legendItems);
+
+        legendMerged
+          .attr('transform', (d, i) => `translate(${i * itemSpacing + 12}, 20)`);
+
+        legendMerged
+          .transition()
+          .duration(500)
+          .style('opacity', 1);
+
+        legendMerged.each(function(value, i) {
+          const item = d3.select(this);
+          item.selectAll('*').remove();
+
+          const h = legendScale(value);
+          const spikePath = `M${-legendSpikeWidth / 2},0 L0,${-h} L${legendSpikeWidth / 2},0 Z`;
+
+          item.append('path')
+            .attr('d', `M${-legendSpikeWidth / 2},0 L0,0 L${legendSpikeWidth / 2},0 Z`)
+            .attr('fill', spikeColor)
+            .attr('stroke', spikeColor)
+            .attr('stroke-width', 1.5)
+            .attr('stroke-linejoin', 'miter')
+            .attr('stroke-miterlimit', 10)
+            .attr('opacity', 0.7)
+            .transition()
+            .duration(500)
+            .attr('d', spikePath);
+
+          item.append('text')
+            .attr('x', 0)
+            .attr('y', 10)
+            .attr('text-anchor', 'middle')
+            .attr('font-size', '9px')
+            .attr('fill', '#333')
+            .text(formatNum(value));
+        });
+      }
+
+      updateLegend(years.length - 1, eventSelect.property('value'));
       update(years.length - 1, eventSelect.property('value'));
+      
       yearSlider.on('input', function() {
         update(+this.value, eventSelect.property('value'));
       });
