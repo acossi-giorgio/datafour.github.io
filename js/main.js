@@ -6,7 +6,8 @@ async function init() {
     targetingCiviliansEvents: await loadCSV('mea_number_of_events_targeting_civilians_by_country_year.csv'),
     politicalViolenceEvents: await loadCSV('mea_number_of_political_violence_events_by_country_year.csv'),
     civilianFatalities: await loadCSV('mea_number_of_reported_civilian_fatalities_by_country_year.csv'),
-    meaAggregatedData: await loadCSV('mea_aggregated_data.csv')
+    meaAggregatedData: await loadCSV('mea_aggregated_data.csv'),
+    aggregatedMapData: await loadCSV('aggregated_map_data.csv')
   }
 
   await loadComponent('navbar-container', 'components/navbar.html');
@@ -14,6 +15,7 @@ async function init() {
   await loadComponent('chapter-1-container', 'components/chapter_1.html');
   await loadComponent('chapter-2-container', 'components/chapter_2.html');
   await loadComponent('chapter-3-container', 'components/chapter_3.html');
+  await loadComponent('chapter-4-container', 'components/chapter_4.html');
   await loadComponent('footer-container', 'components/footer.html');
 
   await loadComponent('grouped-bar-container', 'components/charts/grouped_bar.html');
@@ -26,6 +28,10 @@ async function init() {
   await loadComponent('ridgeline-plot-container', 'components/charts/ridgeline_plot.html');
   await loadComponent('boxplot-container', 'components/charts/box_plot.html');
   await loadComponent('lineplot-container', 'components/charts/line_plot.html');
+  await loadComponent('ChoroplethMap-container', 'components/charts/choroplethmap.html');
+  await loadComponent('symbolic-map-chart', 'components/charts/symbolic_map.html');
+
+  await loadComponent('cartogram-container', 'components/charts/cartogram.html');
 
   renderChart('grouped-bar-chart', renderGroupedBarChart, datasets);
   renderChart('stacked-100-chart', renderStacked100Chart, datasets);
@@ -37,6 +43,9 @@ async function init() {
   renderChart('ridgeline-chart', renderRidgeLinePlot, datasets);
   renderChart('box-plot-chart', renderBoxPlotChart, datasets);
   renderChart('lineplot-chart', renderLinePlotChart, datasets);
+  renderChart('choropleth-chart', renderChoroplethMap, datasets);
+  renderChart('symbolic-map-chart', renderSymbolicMapChart, datasets);
+  renderChart('cartogram-chart', renderCartogram, datasets);
 
   setupMobileNavAutoClose();
 }

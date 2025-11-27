@@ -1,0 +1,104 @@
+<div id="choropleth-chart" class="card-shell-narrow">
+  <div class="h4 pt-2 fw-bold text-center">
+    The map of broken lives
+  </div>
+  <div class="h6 pt-2 mb-4 fw-bold text-center">
+    Annual geographical distribution of civilian deaths.
+  </div>
+
+  <div class="mb-3 text-center">
+    <div class="d-inline-block align-middle mx-2">
+      <button id="choropleth-play-btn" class="btn btn-primary btn-sm me-3">
+        <i class="bi bi-play-fill"></i> Play
+      </button>
+      <label
+        for="choropleth-speed-slider"
+        class="form-label fw-semibold mb-0 me-2"
+        >Speed:</label
+      >
+      <input
+        type="range"
+        id="choropleth-speed-slider"
+        class="form-range d-inline-block"
+        style="width: 200px; vertical-align: middle"
+        min="200"
+        max="2000"
+        value="1000"
+        step="100"
+      />
+      <span id="choropleth-speed-value" class="fw-semibold ms-2">1.0s</span>
+    </div>
+  </div>
+
+  <div class="mb-3 text-center">
+    <div class="d-inline-block align-middle mx-2">
+      <label for="choropleth-year-slider" class="form-label fw-semibold mb-0"
+        >Year:</label
+      >
+      <input
+        type="range"
+        id="choropleth-year-slider"
+        class="form-range d-inline-block"
+        style="width: 300px; vertical-align: middle"
+        min="0"
+        max="0"
+        value="0"
+        step="1"
+        data-init="false"
+      />
+      <span id="choropleth-year-slider-value" class="fw-semibold ms-2">—</span>
+    </div>
+  </div>
+
+  <div class="text-center" style="position: relative">
+    <svg id="choropleth-svg" width="960" height="500"></svg>
+
+    <!-- Controlli zoom in basso a sinistra -->
+    <div
+      id="choropleth-zoom-controls"
+      style="
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        background: rgba(255, 255, 255, 0.95);
+        padding: 10px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        z-index: 1000;
+      "
+    >
+      <div class="d-flex flex-column gap-2">
+        <button
+          id="choropleth-zoom-in"
+          class="btn btn-sm btn-outline-primary"
+          title="Zoom In"
+        >
+          <strong>+</strong>
+        </button>
+        <button
+          id="choropleth-zoom-out"
+          class="btn btn-sm btn-outline-primary"
+          title="Zoom Out"
+        >
+          <strong>−</strong>
+        </button>
+        <button
+          id="choropleth-zoom-reset"
+          class="btn btn-sm btn-outline-secondary"
+          title="Reset View"
+        >
+          <strong>⟲</strong>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card-narrow">
+    <p class="mt-2 mb-0 pt-2 text-muted small text-start">
+      The map shows how the scale of civilian deaths is uneven across the Middle East and North Africa:
+      some countries have consistently low levels, while others become recurring epicenters of conflict.<br />
+      The darker shades reveal the years when violence was most intense, turning entire territories into
+      high-risk areas for the population.
+    </p>
+  </div>
+</div>
