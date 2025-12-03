@@ -16,6 +16,7 @@ async function init() {
   await loadComponent('chapter-2-container', 'components/chapter_2.html');
   await loadComponent('chapter-3-container', 'components/chapter_3.html');
   await loadComponent('chapter-4-container', 'components/chapter_4.html');
+  await loadComponent('chapter-5-container', 'components/chapter_5.html');
   await loadComponent('footer-container', 'components/footer.html');
 
   await loadComponent('grouped-bar-container', 'components/charts/grouped_bar.html');
@@ -46,6 +47,8 @@ async function init() {
   renderChart('choropleth-chart', renderChoroplethMap, datasets);
   renderChart('symbolic-map-chart', renderSymbolicMapChart, datasets);
   renderChart('cartogram-chart', renderCartogram, datasets);
+
+  renderChart('sankey-chart', renderSankeyChart, datasets);
 
   setupMobileNavAutoClose();
 }
