@@ -33,6 +33,7 @@ async function init() {
   await loadComponent('symbolic-map-chart', 'components/charts/symbolic_map.html');
 
   await loadComponent('cartogram-container', 'components/charts/cartogram.html');
+  await loadComponent('sankey-container', 'components/charts/sankey.html');
 
   renderChart('grouped-bar-chart', renderGroupedBarChart, datasets);
   renderChart('stacked-100-chart', renderStacked100Chart, datasets);
