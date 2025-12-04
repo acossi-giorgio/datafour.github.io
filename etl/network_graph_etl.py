@@ -4,10 +4,17 @@ import os
 
 def create_network_data():
     # Load data
-    df = pd.read_csv('raw_datasets/middle_east_aggregated_data.csv', sep=';')
+    df = pd.read_csv('../raw_datasets/middle_east_aggregated_data.csv', sep=';')
+    
+    # Extract year from WEEK column (format: dd-mmmm-yyyy)
+    df['YEAR'] = df['WEEK'].str.split('-').str[-1].astype(int)
+    
+    # Filter for last 10 years
+    max_year = df['YEAR'].max()
+    min_year = max_year - 9  # Last 10 years inclusive
+    df = df[df['YEAR'] >= min_year]
     
     # Aggregate data: Sum of events for each Country-EventType pair
-    # We can also filter by year if we want, but let's take the total for now
     grouped = df.groupby(['COUNTRY', 'EVENT_TYPE'])['EVENTS'].sum().reset_index()
     
     # Create Nodes
@@ -37,13 +44,14 @@ def create_network_data():
     }
     
     # Ensure directory exists
-    os.makedirs('datasets', exist_ok=True)
+    os.makedirs('../datasets', exist_ok=True)
     
     # Save to JSON
-    with open('datasets/network_data.json', 'w') as f:
+    with open('../datasets/network_data.json', 'w') as f:
         json.dump(graph_data, f, indent=2)
         
-    print("Network data created successfully at datasets/network_data.json")
+    print(f"Network data created successfully at ../datasets/network_data.json")
+    print(f"Data range: {min_year} - {max_year} (last 10 years)")
 
 if __name__ == "__main__":
     create_network_data()

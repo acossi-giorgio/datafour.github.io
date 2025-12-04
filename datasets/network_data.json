@@ -99,12 +99,12 @@
     {
       "source": "Bahrain",
       "target": "Protests",
-      "value": 9353
+      "value": 9345
     },
     {
       "source": "Bahrain",
       "target": "Riots",
-      "value": 4158
+      "value": 4154
     },
     {
       "source": "Bahrain",
@@ -129,7 +129,7 @@
     {
       "source": "Iran",
       "target": "Protests",
-      "value": 28786
+      "value": 28784
     },
     {
       "source": "Iran",
@@ -149,12 +149,12 @@
     {
       "source": "Iraq",
       "target": "Battles",
-      "value": 13243
+      "value": 13235
     },
     {
       "source": "Iraq",
       "target": "Explosions/Remote violence",
-      "value": 31412
+      "value": 31399
     },
     {
       "source": "Iraq",
@@ -169,12 +169,12 @@
     {
       "source": "Iraq",
       "target": "Strategic developments",
-      "value": 7452
+      "value": 7451
     },
     {
       "source": "Iraq",
       "target": "Violence against civilians",
-      "value": 3659
+      "value": 3658
     },
     {
       "source": "Israel",
@@ -184,12 +184,12 @@
     {
       "source": "Israel",
       "target": "Explosions/Remote violence",
-      "value": 5099
+      "value": 5098
     },
     {
       "source": "Israel",
       "target": "Protests",
-      "value": 9529
+      "value": 9528
     },
     {
       "source": "Israel",
@@ -204,7 +204,7 @@
     {
       "source": "Israel",
       "target": "Violence against civilians",
-      "value": 308
+      "value": 307
     },
     {
       "source": "Jordan",
@@ -269,7 +269,7 @@
     {
       "source": "Lebanon",
       "target": "Explosions/Remote violence",
-      "value": 16723
+      "value": 16721
     },
     {
       "source": "Lebanon",
@@ -339,12 +339,12 @@
     {
       "source": "Palestine",
       "target": "Riots",
-      "value": 30787
+      "value": 30786
     },
     {
       "source": "Palestine",
       "target": "Strategic developments",
-      "value": 14773
+      "value": 14772
     },
     {
       "source": "Palestine",
@@ -374,17 +374,17 @@
     {
       "source": "Saudi Arabia",
       "target": "Battles",
-      "value": 668
+      "value": 600
     },
     {
       "source": "Saudi Arabia",
       "target": "Explosions/Remote violence",
-      "value": 2331
+      "value": 1969
     },
     {
       "source": "Saudi Arabia",
       "target": "Protests",
-      "value": 18
+      "value": 17
     },
     {
       "source": "Saudi Arabia",
@@ -394,12 +394,12 @@
     {
       "source": "Saudi Arabia",
       "target": "Strategic developments",
-      "value": 484
+      "value": 472
     },
     {
       "source": "Saudi Arabia",
       "target": "Violence against civilians",
-      "value": 48
+      "value": 45
     },
     {
       "source": "Syria",
@@ -434,12 +434,12 @@
     {
       "source": "Turkey",
       "target": "Battles",
-      "value": 3692
+      "value": 3688
     },
     {
       "source": "Turkey",
       "target": "Explosions/Remote violence",
-      "value": 1727
+      "value": 1725
     },
     {
       "source": "Turkey",
@@ -449,7 +449,7 @@
     {
       "source": "Turkey",
       "target": "Riots",
-      "value": 727
+      "value": 726
     },
     {
       "source": "Turkey",
@@ -459,7 +459,7 @@
     {
       "source": "Turkey",
       "target": "Violence against civilians",
-      "value": 938
+      "value": 937
     },
     {
       "source": "United Arab Emirates",
@@ -489,32 +489,32 @@
     {
       "source": "Yemen",
       "target": "Battles",
-      "value": 26265
+      "value": 24235
     },
     {
       "source": "Yemen",
       "target": "Explosions/Remote violence",
-      "value": 48168
+      "value": 42861
     },
     {
       "source": "Yemen",
       "target": "Protests",
-      "value": 20725
+      "value": 20493
     },
     {
       "source": "Yemen",
       "target": "Riots",
-      "value": 670
+      "value": 617
     },
     {
       "source": "Yemen",
       "target": "Strategic developments",
-      "value": 6664
+      "value": 6435
     },
     {
       "source": "Yemen",
       "target": "Violence against civilians",
-      "value": 5432
+      "value": 5191
     }
   ]
 }
