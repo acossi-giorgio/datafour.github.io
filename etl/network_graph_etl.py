@@ -14,6 +14,9 @@ def create_network_data():
     min_year = max_year - 9  # Last 10 years inclusive
     df = df[df['YEAR'] >= min_year]
     
+    # Filter out Strategic developments
+    df = df[df['EVENT_TYPE'] != 'Strategic developments']
+    
     # Aggregate data: Sum of events for each Country-EventType pair
     grouped = df.groupby(['COUNTRY', 'EVENT_TYPE'])['EVENTS'].sum().reset_index()
     

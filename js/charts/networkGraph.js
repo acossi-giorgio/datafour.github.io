@@ -4,6 +4,73 @@ function renderNetworkGraph(container, datasets) {
   const nodes = data.nodes.map(d => ({...d}));
   const links = data.links.map(d => ({...d}));
 
+  // Helper to get link source/target id (handles both string and object)
+  function getLinkId(linkEnd) {
+    return typeof linkEnd === 'object' ? linkEnd.id : linkEnd;
+  }
+
+  // Helper function to build tooltip data for country nodes (blue)
+  function getCountryTooltip(countryId) {
+    const connectedLinks = links.filter(l => getLinkId(l.source) === countryId || getLinkId(l.target) === countryId);
+    const totalEvents = connectedLinks.reduce((sum, l) => sum + l.value, 0);
+    
+    // Group by type
+    const typeComposition = {};
+    connectedLinks.forEach(link => {
+      const sourceId = getLinkId(link.source);
+      const targetId = getLinkId(link.target);
+      const typeId = targetId === countryId ? sourceId : targetId;
+      if (!typeComposition[typeId]) {
+        typeComposition[typeId] = 0;
+      }
+      typeComposition[typeId] += link.value;
+    });
+
+    // Sort by count descending
+    const sortedTypes = Object.entries(typeComposition)
+      .sort((a, b) => b[1] - a[1]);
+
+    let html = `<div style="text-align: center;"><strong>${countryId}</strong></div><strong>Total Events:</strong> ${totalEvents}<hr style="margin: 4px 0; border: 0; border-top: 1px solid rgba(255,255,255,0.3);">`;
+    
+    sortedTypes.forEach(([type, count], index) => {
+      const percentage = ((count / totalEvents) * 100).toFixed(1);
+      html += `${index > 0 ? '<br>' : ''}<strong>${type}:</strong> ${count} (${percentage}%)`;
+    });
+
+    return html;
+  }
+
+  // Helper function to build tooltip data for event type nodes (orange)
+  function getEventTypeTooltip(typeId) {
+    const connectedLinks = links.filter(l => getLinkId(l.source) === typeId || getLinkId(l.target) === typeId);
+    const totalEvents = connectedLinks.reduce((sum, l) => sum + l.value, 0);
+    
+    // Group by country
+    const countryComposition = {};
+    connectedLinks.forEach(link => {
+      const sourceId = getLinkId(link.source);
+      const targetId = getLinkId(link.target);
+      const countryId = sourceId === typeId ? targetId : sourceId;
+      if (!countryComposition[countryId]) {
+        countryComposition[countryId] = 0;
+      }
+      countryComposition[countryId] += link.value;
+    });
+
+    // Sort by count descending
+    const sortedCountries = Object.entries(countryComposition)
+      .sort((a, b) => b[1] - a[1]);
+
+    let html = `<div style="text-align: center;"><strong>${typeId}</strong></div><strong>Total Events:</strong> ${totalEvents}<hr style="margin: 4px 0; border: 0; border-top: 1px solid rgba(255,255,255,0.3);">`;
+    
+    sortedCountries.forEach(([country, count], index) => {
+      const percentage = ((count / totalEvents) * 100).toFixed(1);
+      html += `${index > 0 ? '<br>' : ''}<strong>${country}:</strong> ${count} (${percentage}%)`;
+    });
+
+    return html;
+  }
+
   const width = 800;
   const height = 800;
   const centerX = width / 2;
@@ -78,8 +145,21 @@ function renderNetworkGraph(container, datasets) {
       .style("cursor", "pointer")
       .call(drag(simulation));
 
-  node.append("title")
-      .text(d => d.id);
+  // Create tooltip div
+  const tooltip = d3.select(container)
+      .append("div")
+      .style("position", "absolute")
+      .style("background-color", "rgba(33, 33, 33, 0.95)")
+      .style("color", "white")
+      .style("padding", "8px 12px")
+      .style("border-radius", "4px")
+      .style("font-size", "13px")
+      .style("font-family", "sans-serif")
+      .style("pointer-events", "none")
+      .style("opacity", 0)
+      .style("z-index", "1000")
+      .style("line-height", "1.4")
+      .style("text-align", "left");
 
   // Labels with white halo for better readability
   const labels = svg.append("g")
@@ -110,11 +190,11 @@ function renderNetworkGraph(container, datasets) {
     d3.select(this).style("opacity", 1).attr("stroke", "#333");
     
     // Find neighbors
-    const connectedLinks = links.filter(l => l.source.id === d.id || l.target.id === d.id);
+    const connectedLinks = links.filter(l => getLinkId(l.source) === d.id || getLinkId(l.target) === d.id);
     const neighborIds = new Set();
     connectedLinks.forEach(l => {
-      neighborIds.add(l.source.id);
-      neighborIds.add(l.target.id);
+      neighborIds.add(getLinkId(l.source));
+      neighborIds.add(getLinkId(l.target));
     });
 
     // Highlight neighbors
@@ -122,15 +202,44 @@ function renderNetworkGraph(container, datasets) {
     labels.filter(n => neighborIds.has(n.id) || n.id === d.id).style("opacity", 1);
 
     // Highlight links
-    link.filter(l => l.source.id === d.id || l.target.id === d.id)
+    link.filter(l => getLinkId(l.source) === d.id || getLinkId(l.target) === d.id)
         .style("opacity", 0.8)
         .attr("stroke", "#555");
+
+    // Show tooltip
+    const tooltipContent = d.group === 'country' ? getCountryTooltip(d.id) : getEventTypeTooltip(d.id);
+    tooltip.html(tooltipContent)
+        .style("opacity", 1)
+        .style("left", (event.pageX + 10) + "px")
+        .style("top", (event.pageY + 10) + "px");
+  })
+  .on("mousemove", function(event) {
+    tooltip.style("left", (event.pageX + 10) + "px")
+        .style("top", (event.pageY + 10) + "px");
   })
   .on("mouseout", function() {
     // Reset styles
     node.style("opacity", 1).attr("stroke", "#fff");
     link.style("opacity", 0.3).attr("stroke", "#999");
     labels.style("opacity", 1);
+    
+    // Hide tooltip
+    tooltip.style("opacity", 0);
+  })
+  .on("click", function(event, d) {
+    event.stopPropagation();
+    
+    // Show tooltip
+    const tooltipContent = d.group === 'country' ? getCountryTooltip(d.id) : getEventTypeTooltip(d.id);
+    tooltip.html(tooltipContent)
+        .style("opacity", 1)
+        .style("left", (event.pageX + 10) + "px")
+        .style("top", (event.pageY + 10) + "px");
+  });
+
+  // Hide tooltip on background click
+  svg.on("click", function() {
+    tooltip.style("opacity", 0);
   });
 
   simulation.on("tick", () => {
