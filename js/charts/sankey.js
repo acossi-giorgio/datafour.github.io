@@ -107,19 +107,41 @@ function renderSankeyChart(container, datasets) {
     .style('box-shadow', '0 2px 12px rgba(0,0,0,0.3)')
     .style('max-width', '300px');
 
-  // Chart dimensions
-  const margin = { top: 20, right: 150, bottom: 20, left: 20 };
-  const fullWidth = 960;
-  const fullHeight = 600;
-  const width = fullWidth - margin.left - margin.right;
-  const height = fullHeight - margin.top - margin.bottom;
+  // Chart margins
+  const margin = { top: 20, right: 200, bottom: 20, left: 20 };
 
+  // Compute responsive dimensions based on container width
+  function computeDimensions() {
+    const containerNode = root.node();
+    let containerWidth = 1100; // fallback
+    if (containerNode) {
+      const rect = containerNode.getBoundingClientRect();
+      if (rect && rect.width) containerWidth = Math.max(600, Math.round(rect.width));
+    }
+    const fullWidth = containerWidth;
+    const fullHeight = Math.max(400, Math.round(fullWidth * 0.6));
+    const width = fullWidth - margin.left - margin.right;
+    const height = fullHeight - margin.top - margin.bottom;
+    return { fullWidth, fullHeight, width, height };
+  }
+
+  // Simple debounce helper
+  function debounce(fn, wait) {
+    let t;
+    return function(...args) {
+      clearTimeout(t);
+      t = setTimeout(() => fn.apply(this, args), wait);
+    };
+  }
+
+  // Apply initial responsive sizing to the SVG
+  const initialDims = computeDimensions();
   svg
-    .attr('width', fullWidth)
-    .attr('height', fullHeight)
+    .attr('viewBox', `0 0 ${initialDims.fullWidth} ${initialDims.fullHeight}`)
+    .attr('preserveAspectRatio', 'xMidYMid meet')
+    .attr('width', '100%')
     .style('max-width', '100%')
     .style('height', 'auto');
-
   // Clear previous content
   svg.selectAll('g.chart-root').remove();
   const g = svg
@@ -153,7 +175,7 @@ function renderSankeyChart(container, datasets) {
     
     // Default to first country with substantial data
     const defaultCountry = countries.includes('Syria') ? 'Syria' : 
-                           countries.includes('Yemen') ? 'Yemen' : countries[0];
+                          countries.includes('Yemen') ? 'Yemen' : countries[0];
     countrySelect.property('value', defaultCountry);
   }
 
@@ -168,12 +190,15 @@ function renderSankeyChart(container, datasets) {
       '#666666'   
     ]);
 
-  const sankey = d3.sankey()
-    .nodeId(d => d.name)
-    .nodeWidth(20)
-    .nodePadding(12)
-    .nodeAlign(d3.sankeyLeft)
-    .extent([[0, 0], [width, height]]);
+  // Create a sankey generator for given drawing width/height
+  function createSankey(drawWidth, drawHeight) {
+    return d3.sankey()
+      .nodeId(d => d.name)
+      .nodeWidth(20)
+      .nodePadding(12)
+      .nodeAlign(d3.sankeyLeft)
+      .extent([[0, 0], [Math.max(0, drawWidth - 100), Math.max(0, drawHeight)]]);
+  }
 
   function showTooltip(event, content) {
     tooltip
@@ -206,6 +231,16 @@ function renderSankeyChart(container, datasets) {
   }
 
   function drawSankeyContent(country, yearStart, yearEnd) {
+    // Recompute dimensions for responsive behavior
+    const dims = computeDimensions();
+    const fullWidth = dims.fullWidth;
+    const fullHeight = dims.fullHeight;
+    const width = dims.width;
+    const height = dims.height;
+
+    // Ensure SVG viewBox matches current container size
+    svg.attr('viewBox', `0 0 ${fullWidth} ${fullHeight}`);
+
     const countryData = rawAll.filter(d => 
       d.country === country && 
       d.year >= yearStart && 
@@ -276,7 +311,8 @@ function renderSankeyChart(container, datasets) {
 
     const nodes = Array.from(nodeSet).map(name => ({ name }));
 
-    const sankeyData = sankey({
+    const sankeyGenerator = createSankey(width, height);
+    const sankeyData = sankeyGenerator({
       nodes: nodes.map(d => ({ ...d })),
       links: filteredLinks.map(d => ({ ...d }))
     });
@@ -288,15 +324,17 @@ function renderSankeyChart(container, datasets) {
     const clipRect = defs.append('clipPath')
       .attr('id', clipId)
       .append('rect')
-      .attr('x', 0)
-      .attr('y', 0)
+      .attr('x', -margin.left)
+      .attr('y', -margin.top)
       .attr('width', 0)
-      .attr('height', height);
+      .attr('height', 0);
 
+    // Expand clip to include margins and extra padding so labels are not cut
     clipRect.transition()
-      .duration(1000)
+      .duration(600)
       .ease(d3.easeQuadOut)
-      .attr('width', width + margin.right);
+      .attr('width', width + margin.left + margin.right + 300)
+      .attr('height', height + margin.top + margin.bottom + 100);
 
     const linkGroup = chartGroup.append('g')
       .attr('class', 'links')
@@ -525,6 +563,10 @@ function renderSankeyChart(container, datasets) {
 
   // Initial draw (with animation)
   updateChart(true);
+
+  // Redraw on window resize (debounced)
+  const handleResize = debounce(() => updateChart(false), 150);
+  window.addEventListener('resize', handleResize);
 
   // Event listeners for controls
   if (!countrySelect.empty()) {
