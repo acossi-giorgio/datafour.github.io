@@ -6,6 +6,8 @@ function renderNetworkGraph(container, datasets) {
 
   const width = 800;
   const height = 800;
+  const centerX = width / 2;
+  const centerY = height / 2;
 
   const root = d3.select(container);
   const containerDiv = root.select('#network-graph-container');
@@ -19,12 +21,39 @@ function renderNetworkGraph(container, datasets) {
       .attr('viewBox', [-50, 50, 900, 700])
       .attr('style', 'max-width: 100%; height: auto;');
 
-  // Increased repulsion and distance to spread nodes out
+  // Separate nodes by group
+  const countryNodes = nodes.filter(d => d.group === 'country');
+  const otherNodes = nodes.filter(d => d.group !== 'country');
+
+  // Seeded random for consistent pseudo-random positioning
+  const seededRandom = (seed) => {
+    const x = Math.sin(seed * 9999) * 10000;
+    return x - Math.floor(x);
+  };
+
+  // Position country nodes (blue) pseudo-randomly in the center area
+  const innerRadius = 1000;
+  countryNodes.forEach((d, i) => {
+    const angle = seededRandom(i * 7) * 2 * Math.PI;
+    const radius = seededRandom(i * 13) * innerRadius;
+    d.x = centerX + radius * Math.cos(angle);
+    d.y = centerY + radius * Math.sin(angle);
+  });
+
+  // Position other nodes (orange) radially around the center
+  const outerRadius = 300;
+  otherNodes.forEach((d, i) => {
+    const angle = (2 * Math.PI * i) / otherNodes.length - Math.PI / 2;
+    d.x = centerX + outerRadius * Math.cos(angle);
+    d.y = centerY + outerRadius * Math.sin(angle);
+  });
+
+  // Simulation with radial force for orange nodes, blue nodes stay in center area
   const simulation = d3.forceSimulation(nodes)
-      .force("link", d3.forceLink(links).id(d => d.id).distance(250))
-      .force("charge", d3.forceManyBody().strength(-1000))
-      .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collide", d3.forceCollide().radius(60));
+      .force("link", d3.forceLink(links).id(d => d.id).distance(150).strength(0.1))
+      .force("charge", d3.forceManyBody().strength(-200))
+      .force("radial", d3.forceRadial(d => d.group === 'country' ? 0 : outerRadius, centerX, centerY).strength(d => d.group === 'country' ? 0.3 : 0.8))
+      .force("collide", d3.forceCollide().radius(30));
 
   // Links with lower default opacity
   const link = svg.append("g")
