@@ -5,18 +5,15 @@ function renderSankeyChart(container, datasets) {
     return;
   }
 
-  // UI Elements
   const svg = root.select('#sankey-svg');
   const countrySelect = root.select('#sankey-country-select');
   const yearStartSelect = root.select('#sankey-year-start');
   const yearEndSelect = root.select('#sankey-year-end');
 
-  // Year range
   const YEAR_MIN = 2015;
   const YEAR_MAX = 2024;
   const years = d3.range(YEAR_MIN, YEAR_MAX + 1);
 
-  // Function to update year end options based on year start selection
   function updateYearEndOptions(minYear) {
     if (yearEndSelect.empty()) return;
     
@@ -31,7 +28,6 @@ function renderSankeyChart(container, datasets) {
       .attr('value', d => d)
       .text(d => d);
     
-    // Keep current selection if valid, otherwise set to max
     if (currentEnd >= minYear) {
       yearEndSelect.property('value', currentEnd);
     } else {
@@ -39,7 +35,6 @@ function renderSankeyChart(container, datasets) {
     }
   }
 
-  // Function to update year start options based on year end selection
   function updateYearStartOptions(maxYear) {
     if (yearStartSelect.empty()) return;
     
@@ -54,7 +49,6 @@ function renderSankeyChart(container, datasets) {
       .attr('value', d => d)
       .text(d => d);
     
-    // Keep current selection if valid, otherwise set to min
     if (currentStart <= maxYear) {
       yearStartSelect.property('value', currentStart);
     } else {
@@ -62,7 +56,6 @@ function renderSankeyChart(container, datasets) {
     }
   }
 
-  // Initial populate year selectors
   if (!yearStartSelect.empty()) {
     yearStartSelect.selectAll('option').remove();
     yearStartSelect.selectAll('option')
@@ -85,7 +78,6 @@ function renderSankeyChart(container, datasets) {
     yearEndSelect.property('value', YEAR_MAX);
   }
 
-  // Tooltip
   const TOOLTIP_ID = 'sankey-tooltip';
   let tooltip = d3.select(`#${TOOLTIP_ID}`);
   if (tooltip.empty()) {
@@ -107,13 +99,11 @@ function renderSankeyChart(container, datasets) {
     .style('box-shadow', '0 2px 12px rgba(0,0,0,0.3)')
     .style('max-width', '300px');
 
-  // Chart margins
-  const margin = { top: 20, right: 200, bottom: 20, left: 20 };
+  const margin = { top: 20, right: 200, bottom: 20, left: 100 };
 
-  // Compute responsive dimensions based on container width
   function computeDimensions() {
     const containerNode = root.node();
-    let containerWidth = 1100; // fallback
+    let containerWidth = 1100;
     if (containerNode) {
       const rect = containerNode.getBoundingClientRect();
       if (rect && rect.width) containerWidth = Math.max(600, Math.round(rect.width));
@@ -125,7 +115,6 @@ function renderSankeyChart(container, datasets) {
     return { fullWidth, fullHeight, width, height };
   }
 
-  // Simple debounce helper
   function debounce(fn, wait) {
     let t;
     return function(...args) {
@@ -134,7 +123,6 @@ function renderSankeyChart(container, datasets) {
     };
   }
 
-  // Apply initial responsive sizing to the SVG
   const initialDims = computeDimensions();
   svg
     .attr('viewBox', `0 0 ${initialDims.fullWidth} ${initialDims.fullHeight}`)
@@ -142,7 +130,7 @@ function renderSankeyChart(container, datasets) {
     .attr('width', '100%')
     .style('max-width', '100%')
     .style('height', 'auto');
-  // Clear previous content
+
   svg.selectAll('g.chart-root').remove();
   const g = svg
     .append('g')
@@ -150,7 +138,6 @@ function renderSankeyChart(container, datasets) {
     .attr('transform', `translate(${margin.left},${margin.top})`);
   const chartGroup = g.append('g').attr('class', 'sankey-group');
 
-  // Load and process data (keep all data, filter later)
   const rawAll = (datasets.meaAggregatedData || []).map(d => ({
     country: (d.COUNTRY || d.Country || '').trim(),
     eventType: (d.EVENT_TYPE || d.EventType || '').trim(),
@@ -158,12 +145,10 @@ function renderSankeyChart(container, datasets) {
     events: +(d.EVENTS || 0),
     fatalities: +(d.FATALITIES || 0),
     year: +(d.YEAR || d.Year || 0)
-  })).filter(d => d.country && d.eventType && d.subEventType && d.year >= YEAR_MIN && d.year <= YEAR_MAX);
+  })).filter(d => d.country && d.eventType && d.subEventType && d.year >= YEAR_MIN && d.year <= YEAR_MAX && d.eventType !== 'Strategic developments');
 
-  // Get unique countries
   const countries = [...new Set(rawAll.map(d => d.country))].sort();
 
-  // Populate country selector
   if (!countrySelect.empty()) {
     countrySelect.selectAll('option').remove();
     countrySelect.selectAll('option')
@@ -173,7 +158,6 @@ function renderSankeyChart(container, datasets) {
       .attr('value', d => d)
       .text(d => d);
     
-    // Default to first country with substantial data
     const defaultCountry = countries.includes('Syria') ? 'Syria' : 
                           countries.includes('Yemen') ? 'Yemen' : countries[0];
     countrySelect.property('value', defaultCountry);
@@ -190,7 +174,6 @@ function renderSankeyChart(container, datasets) {
       '#666666'   
     ]);
 
-  // Create a sankey generator for given drawing width/height
   function createSankey(drawWidth, drawHeight) {
     return d3.sankey()
       .nodeId(d => d.name)
@@ -231,14 +214,12 @@ function renderSankeyChart(container, datasets) {
   }
 
   function drawSankeyContent(country, yearStart, yearEnd) {
-    // Recompute dimensions for responsive behavior
     const dims = computeDimensions();
     const fullWidth = dims.fullWidth;
     const fullHeight = dims.fullHeight;
     const width = dims.width;
     const height = dims.height;
 
-    // Ensure SVG viewBox matches current container size
     svg.attr('viewBox', `0 0 ${fullWidth} ${fullHeight}`);
 
     const countryData = rawAll.filter(d => 
@@ -329,7 +310,6 @@ function renderSankeyChart(container, datasets) {
       .attr('width', 0)
       .attr('height', 0);
 
-    // Expand clip to include margins and extra padding so labels are not cut
     clipRect.transition()
       .duration(600)
       .ease(d3.easeQuadOut)
@@ -389,7 +369,6 @@ function renderSankeyChart(container, datasets) {
         connectedNodeNames.add(l.target.name);
       });
 
-
       linkGroup.selectAll('path')
         .transition()
         .duration(200)
@@ -397,7 +376,6 @@ function renderSankeyChart(container, datasets) {
           (l.source.name === d.name || l.target.name === d.name) ? 0.8 : 0.1
         );
 
-      // Dim all nodes
       nodeGroup.selectAll('g.node')
         .transition()
         .duration(200)
@@ -405,26 +383,23 @@ function renderSankeyChart(container, datasets) {
     }
 
     function resetHighlight() {
-      // Restore all links
       linkGroup.selectAll('path')
         .transition()
         .duration(200)
         .attr('stroke-opacity', 0.5);
 
-      // Restore all nodes
       nodeGroup.selectAll('g.node')
         .transition()
         .duration(200)
         .style('opacity', 1);
     }
 
-    // Add event listeners for links
     linkGroup.selectAll('path')
       .on('mouseover', function(event, d) {
         highlightLink(d);
         showTooltip(event, `
-          <strong>${d.source.name}</strong> → <strong>${d.target.name}</strong><br>
-          Events: ${d3.format(',')(d.value)}<br>
+          <div style="text-align: center;"><strong>${d.source.name} → ${d.target.name}</strong></div>
+          Events: ${d3.format(',')(d.value)} <br>
           Fatalities: ${d3.format(',')(d.fatalities)}
         `);
       })
@@ -438,7 +413,6 @@ function renderSankeyChart(container, datasets) {
         hideTooltip();
       });
 
-    // Store fill colors for each node
     const getNodeColor = (d) => {
       const isSource = sankeyData.links.some(l => l.source.name === d.name);
       if (isSource && !sankeyData.links.some(l => l.target.name === d.name)) {
@@ -463,22 +437,19 @@ function renderSankeyChart(container, datasets) {
       .attr('ry', 3)
       .style('cursor', 'pointer')
       .on('mouseover', function(event, d) {
-        // Highlight the path
         highlightPath(d);
         
         const totalEvents = d.value || 0;
         const outgoingLinks = sankeyData.links.filter(l => l.source.name === d.name);
         
-        let content = `<strong>${d.name}</strong><br>Total Events: ${d3.format(',')(totalEvents)}`;
-        
+        let content = `<div style="text-align: center;"><strong>${d.name}</strong></div>Total Events: ${d3.format(',')(totalEvents)}`;
+
         if (outgoingLinks.length > 0) {
-          content += '<br><br><em>Sub-types:</em>';
-          outgoingLinks.slice(0, 5).forEach(l => {
-            content += `<br>• ${l.target.name}: ${d3.format(',')(l.value)}`;
+          content += '<hr style="margin: 4px 0; border: 0; border-top: 1px solid rgba(255,255,255,0.3);">'
+          outgoingLinks.forEach((l, index) => {
+            const percentage = ((l.value / totalEvents) * 100).toFixed(1);
+            content += `${index > 0 ? '<br>' : ''}${l.target.name}: ${d3.format(',')(l.value)} (${percentage}%)`;
           });
-          if (outgoingLinks.length > 5) {
-            content += `<br>...and ${outgoingLinks.length - 5} more`;
-          }
         }
         
         showTooltip(event, content);
@@ -490,34 +461,28 @@ function renderSankeyChart(container, datasets) {
           .style('top', (event.clientY + 15) + 'px');
       })
       .on('mouseout', function() {
-        // Reset highlight
         resetHighlight();
         hideTooltip();
         d3.select(this).attr('stroke-width', 0.5);
       });
 
-    // Helper function to generate tooltip content for a node
     function getNodeTooltipContent(d) {
       const totalEvents = d.value || 0;
       const incomingLinks = sankeyData.links.filter(l => l.target.name === d.name);
       const outgoingLinks = sankeyData.links.filter(l => l.source.name === d.name);
       
-      let content = `<strong>${d.name}</strong><br>Total Events: ${d3.format(',')(totalEvents)}`;
+      let content = `<div style="text-align: center;"><strong>${d.name}</strong></div><strong>Total Events:</strong> ${d3.format(',')(totalEvents)}<hr style="margin: 4px 0; border: 0; border-top: 1px solid rgba(255,255,255,0.3);">`;
       
       if (outgoingLinks.length > 0) {
-        content += '<br><br><em>Sub-types:</em>';
-        outgoingLinks.slice(0, 5).forEach(l => {
-          content += `<br>• ${l.target.name}: ${d3.format(',')(l.value)}`;
+        outgoingLinks.forEach((l, index) => {
+          const percentage = ((l.value / totalEvents) * 100).toFixed(1);
+          content += `${index > 0 ? '<br>' : ''}<strong>${l.target.name}:</strong> ${d3.format(',')(l.value)} (${percentage}%)`;
         });
-        if (outgoingLinks.length > 5) {
-          content += `<br>...and ${outgoingLinks.length - 5} more`;
-        }
       }
       
       return content;
     }
 
-    // Add labels - always on the right side with fixed font size, interactive
     node.append('text')
       .attr('x', d => d.x1 + 6)
       .attr('y', d => (d.y1 + d.y0) / 2)
@@ -529,10 +494,8 @@ function renderSankeyChart(container, datasets) {
       .style('fill', '#333')
       .style('cursor', 'pointer')
       .on('mouseover', function(event, d) {
-        // Highlight the path
         highlightPath(d);
         showTooltip(event, getNodeTooltipContent(d));
-        // Highlight the corresponding rect
         d3.select(this.parentNode).select('rect').attr('stroke-width', 2);
       })
       .on('mousemove', (event) => {
@@ -541,34 +504,28 @@ function renderSankeyChart(container, datasets) {
           .style('top', (event.clientY + 15) + 'px');
       })
       .on('mouseout', function() {
-        // Reset highlight
         resetHighlight();
         hideTooltip();
         d3.select(this.parentNode).select('rect').attr('stroke-width', 0.5);
       });
   }
 
-  // Helper function to get current selections and redraw
   function updateChart(animate = true) {
     const country = countrySelect.empty() ? countries[0] : countrySelect.property('value');
     const yearStart = yearStartSelect.empty() ? YEAR_MIN : +yearStartSelect.property('value');
     const yearEnd = yearEndSelect.empty() ? YEAR_MAX : +yearEndSelect.property('value');
     
-    // Ensure yearStart <= yearEnd
     const actualStart = Math.min(yearStart, yearEnd);
     const actualEnd = Math.max(yearStart, yearEnd);
     
     drawSankey(country, actualStart, actualEnd, animate);
   }
 
-  // Initial draw (with animation)
   updateChart(true);
 
-  // Redraw on window resize (debounced)
   const handleResize = debounce(() => updateChart(false), 150);
   window.addEventListener('resize', handleResize);
 
-  // Event listeners for controls
   if (!countrySelect.empty()) {
     countrySelect.on('change', () => updateChart(true));
   }

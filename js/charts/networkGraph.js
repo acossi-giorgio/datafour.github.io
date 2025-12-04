@@ -1,20 +1,16 @@
 function renderNetworkGraph(container, datasets) {
   const data = datasets.networkData;
-  // Clone data to avoid mutation issues if re-rendered
   const nodes = data.nodes.map(d => ({...d}));
   const links = data.links.map(d => ({...d}));
 
-  // Helper to get link source/target id (handles both string and object)
   function getLinkId(linkEnd) {
     return typeof linkEnd === 'object' ? linkEnd.id : linkEnd;
   }
 
-  // Helper function to build tooltip data for country nodes (blue)
   function getCountryTooltip(countryId) {
     const connectedLinks = links.filter(l => getLinkId(l.source) === countryId || getLinkId(l.target) === countryId);
     const totalEvents = connectedLinks.reduce((sum, l) => sum + l.value, 0);
     
-    // Group by type
     const typeComposition = {};
     connectedLinks.forEach(link => {
       const sourceId = getLinkId(link.source);
@@ -26,26 +22,23 @@ function renderNetworkGraph(container, datasets) {
       typeComposition[typeId] += link.value;
     });
 
-    // Sort by count descending
     const sortedTypes = Object.entries(typeComposition)
       .sort((a, b) => b[1] - a[1]);
 
-    let html = `<div style="text-align: center;"><strong>${countryId}</strong></div><strong>Total Events:</strong> ${totalEvents}<hr style="margin: 4px 0; border: 0; border-top: 1px solid rgba(255,255,255,0.3);">`;
+    let html = `<div style="text-align: center;"><strong>${countryId}</strong></div>Total Events:${totalEvents}<hr style="margin: 4px 0; border: 0; border-top: 1px solid rgba(255,255,255,0.3);">`;
     
     sortedTypes.forEach(([type, count], index) => {
       const percentage = ((count / totalEvents) * 100).toFixed(1);
-      html += `${index > 0 ? '<br>' : ''}<strong>${type}:</strong> ${count} (${percentage}%)`;
+      html += `${index > 0 ? '<br>' : ''}${type}: ${count} (${percentage}%)`;
     });
 
     return html;
   }
 
-  // Helper function to build tooltip data for event type nodes (orange)
   function getEventTypeTooltip(typeId) {
     const connectedLinks = links.filter(l => getLinkId(l.source) === typeId || getLinkId(l.target) === typeId);
     const totalEvents = connectedLinks.reduce((sum, l) => sum + l.value, 0);
     
-    // Group by country
     const countryComposition = {};
     connectedLinks.forEach(link => {
       const sourceId = getLinkId(link.source);
@@ -57,7 +50,6 @@ function renderNetworkGraph(container, datasets) {
       countryComposition[countryId] += link.value;
     });
 
-    // Sort by count descending
     const sortedCountries = Object.entries(countryComposition)
       .sort((a, b) => b[1] - a[1]);
 
@@ -79,7 +71,6 @@ function renderNetworkGraph(container, datasets) {
   const root = d3.select(container);
   const containerDiv = root.select('#network-graph-container');
   
-  // Clear previous
   containerDiv.selectAll('*').remove();
 
   const svg = containerDiv.append('svg')
@@ -88,17 +79,14 @@ function renderNetworkGraph(container, datasets) {
       .attr('viewBox', [-50, 50, 900, 700])
       .attr('style', 'max-width: 100%; height: auto;');
 
-  // Separate nodes by group
   const countryNodes = nodes.filter(d => d.group === 'country');
   const otherNodes = nodes.filter(d => d.group !== 'country');
 
-  // Seeded random for consistent pseudo-random positioning
   const seededRandom = (seed) => {
     const x = Math.sin(seed * 9999) * 10000;
     return x - Math.floor(x);
   };
 
-  // Position country nodes (blue) pseudo-randomly in the center area
   const innerRadius = 1000;
   countryNodes.forEach((d, i) => {
     const angle = seededRandom(i * 7) * 2 * Math.PI;
@@ -107,22 +95,20 @@ function renderNetworkGraph(container, datasets) {
     d.y = centerY + radius * Math.sin(angle);
   });
 
-  // Position other nodes (orange) radially around the center
   const outerRadius = 300;
   otherNodes.forEach((d, i) => {
     const angle = (2 * Math.PI * i) / otherNodes.length - Math.PI / 2;
     d.x = centerX + outerRadius * Math.cos(angle);
     d.y = centerY + outerRadius * Math.sin(angle);
+    d.fx = centerX + outerRadius * Math.cos(angle);
+    d.fy = centerY + outerRadius * Math.sin(angle);
   });
 
-  // Simulation with radial force for orange nodes, blue nodes stay in center area
   const simulation = d3.forceSimulation(nodes)
       .force("link", d3.forceLink(links).id(d => d.id).distance(150).strength(0.1))
       .force("charge", d3.forceManyBody().strength(-200))
-      .force("radial", d3.forceRadial(d => d.group === 'country' ? 0 : outerRadius, centerX, centerY).strength(d => d.group === 'country' ? 0.3 : 0.8))
       .force("collide", d3.forceCollide().radius(30));
 
-  // Links with lower default opacity
   const link = svg.append("g")
       .attr("stroke", "#999")
       .attr("stroke-opacity", 0.3)
@@ -130,9 +116,8 @@ function renderNetworkGraph(container, datasets) {
     .data(links)
     .join("line")
       .attr("class", "network-link")
-      .attr("stroke-width", d => Math.max(1, Math.sqrt(d.value) * 0.05)); 
+      .attr("stroke-width", d => Math.max(1, Math.sqrt(d.value) * 0.05));
 
-  // Nodes
   const node = svg.append("g")
       .attr("stroke", "#fff")
       .attr("stroke-width", 1.5)
@@ -140,12 +125,11 @@ function renderNetworkGraph(container, datasets) {
     .data(nodes)
     .join("circle")
       .attr("class", "network-node")
-      .attr("r", d => d.group === 'country' ? 15 : 10) // Slightly larger nodes
+      .attr("r", d => d.group === 'country' ? 15 : 10)
       .attr("fill", d => d.group === 'country' ? "#1f77b4" : "#ff7f0e")
       .style("cursor", "pointer")
       .call(drag(simulation));
 
-  // Create tooltip div
   const tooltip = d3.select(container)
       .append("div")
       .style("position", "absolute")
@@ -161,10 +145,9 @@ function renderNetworkGraph(container, datasets) {
       .style("line-height", "1.4")
       .style("text-align", "left");
 
-  // Labels with white halo for better readability
   const labels = svg.append("g")
       .attr("class", "labels")
-      .style("pointer-events", "none") // Let clicks pass through to nodes
+      .style("pointer-events", "none")
     .selectAll("text")
     .data(nodes)
     .join("text")
@@ -179,17 +162,13 @@ function renderNetworkGraph(container, datasets) {
       .style("stroke-width", "3px")
       .style("paint-order", "stroke");
 
-  // Hover Interaction
   node.on("mouseover", function(event, d) {
-    // Dim everything
     node.style("opacity", 0.1);
     link.style("opacity", 0.05);
     labels.style("opacity", 0.1);
 
-    // Highlight current node
     d3.select(this).style("opacity", 1).attr("stroke", "#333");
     
-    // Find neighbors
     const connectedLinks = links.filter(l => getLinkId(l.source) === d.id || getLinkId(l.target) === d.id);
     const neighborIds = new Set();
     connectedLinks.forEach(l => {
@@ -197,16 +176,13 @@ function renderNetworkGraph(container, datasets) {
       neighborIds.add(getLinkId(l.target));
     });
 
-    // Highlight neighbors
     node.filter(n => neighborIds.has(n.id)).style("opacity", 1);
     labels.filter(n => neighborIds.has(n.id) || n.id === d.id).style("opacity", 1);
 
-    // Highlight links
     link.filter(l => getLinkId(l.source) === d.id || getLinkId(l.target) === d.id)
         .style("opacity", 0.8)
         .attr("stroke", "#555");
 
-    // Show tooltip
     const tooltipContent = d.group === 'country' ? getCountryTooltip(d.id) : getEventTypeTooltip(d.id);
     tooltip.html(tooltipContent)
         .style("opacity", 1)
@@ -218,18 +194,15 @@ function renderNetworkGraph(container, datasets) {
         .style("top", (event.pageY + 10) + "px");
   })
   .on("mouseout", function() {
-    // Reset styles
     node.style("opacity", 1).attr("stroke", "#fff");
     link.style("opacity", 0.3).attr("stroke", "#999");
     labels.style("opacity", 1);
     
-    // Hide tooltip
     tooltip.style("opacity", 0);
   })
   .on("click", function(event, d) {
     event.stopPropagation();
     
-    // Show tooltip
     const tooltipContent = d.group === 'country' ? getCountryTooltip(d.id) : getEventTypeTooltip(d.id);
     tooltip.html(tooltipContent)
         .style("opacity", 1)
@@ -237,7 +210,6 @@ function renderNetworkGraph(container, datasets) {
         .style("top", (event.pageY + 10) + "px");
   });
 
-  // Hide tooltip on background click
   svg.on("click", function() {
     tooltip.style("opacity", 0);
   });
