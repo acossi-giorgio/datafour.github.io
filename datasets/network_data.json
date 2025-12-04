@@ -1,0 +1,520 @@
+{
+  "nodes": [
+    {
+      "id": "Bahrain",
+      "group": "country"
+    },
+    {
+      "id": "Iran",
+      "group": "country"
+    },
+    {
+      "id": "Iraq",
+      "group": "country"
+    },
+    {
+      "id": "Israel",
+      "group": "country"
+    },
+    {
+      "id": "Jordan",
+      "group": "country"
+    },
+    {
+      "id": "Kuwait",
+      "group": "country"
+    },
+    {
+      "id": "Lebanon",
+      "group": "country"
+    },
+    {
+      "id": "Oman",
+      "group": "country"
+    },
+    {
+      "id": "Palestine",
+      "group": "country"
+    },
+    {
+      "id": "Qatar",
+      "group": "country"
+    },
+    {
+      "id": "Saudi Arabia",
+      "group": "country"
+    },
+    {
+      "id": "Syria",
+      "group": "country"
+    },
+    {
+      "id": "Turkey",
+      "group": "country"
+    },
+    {
+      "id": "United Arab Emirates",
+      "group": "country"
+    },
+    {
+      "id": "Yemen",
+      "group": "country"
+    },
+    {
+      "id": "Battles",
+      "group": "event_type"
+    },
+    {
+      "id": "Explosions/Remote violence",
+      "group": "event_type"
+    },
+    {
+      "id": "Protests",
+      "group": "event_type"
+    },
+    {
+      "id": "Riots",
+      "group": "event_type"
+    },
+    {
+      "id": "Strategic developments",
+      "group": "event_type"
+    },
+    {
+      "id": "Violence against civilians",
+      "group": "event_type"
+    }
+  ],
+  "links": [
+    {
+      "source": "Bahrain",
+      "target": "Battles",
+      "value": 7
+    },
+    {
+      "source": "Bahrain",
+      "target": "Explosions/Remote violence",
+      "value": 15
+    },
+    {
+      "source": "Bahrain",
+      "target": "Protests",
+      "value": 9353
+    },
+    {
+      "source": "Bahrain",
+      "target": "Riots",
+      "value": 4158
+    },
+    {
+      "source": "Bahrain",
+      "target": "Strategic developments",
+      "value": 130
+    },
+    {
+      "source": "Bahrain",
+      "target": "Violence against civilians",
+      "value": 63
+    },
+    {
+      "source": "Iran",
+      "target": "Battles",
+      "value": 479
+    },
+    {
+      "source": "Iran",
+      "target": "Explosions/Remote violence",
+      "value": 519
+    },
+    {
+      "source": "Iran",
+      "target": "Protests",
+      "value": 28786
+    },
+    {
+      "source": "Iran",
+      "target": "Riots",
+      "value": 1280
+    },
+    {
+      "source": "Iran",
+      "target": "Strategic developments",
+      "value": 1316
+    },
+    {
+      "source": "Iran",
+      "target": "Violence against civilians",
+      "value": 736
+    },
+    {
+      "source": "Iraq",
+      "target": "Battles",
+      "value": 13243
+    },
+    {
+      "source": "Iraq",
+      "target": "Explosions/Remote violence",
+      "value": 31412
+    },
+    {
+      "source": "Iraq",
+      "target": "Protests",
+      "value": 8870
+    },
+    {
+      "source": "Iraq",
+      "target": "Riots",
+      "value": 1411
+    },
+    {
+      "source": "Iraq",
+      "target": "Strategic developments",
+      "value": 7452
+    },
+    {
+      "source": "Iraq",
+      "target": "Violence against civilians",
+      "value": 3659
+    },
+    {
+      "source": "Israel",
+      "target": "Battles",
+      "value": 382
+    },
+    {
+      "source": "Israel",
+      "target": "Explosions/Remote violence",
+      "value": 5099
+    },
+    {
+      "source": "Israel",
+      "target": "Protests",
+      "value": 9529
+    },
+    {
+      "source": "Israel",
+      "target": "Riots",
+      "value": 1288
+    },
+    {
+      "source": "Israel",
+      "target": "Strategic developments",
+      "value": 2180
+    },
+    {
+      "source": "Israel",
+      "target": "Violence against civilians",
+      "value": 308
+    },
+    {
+      "source": "Jordan",
+      "target": "Battles",
+      "value": 98
+    },
+    {
+      "source": "Jordan",
+      "target": "Explosions/Remote violence",
+      "value": 30
+    },
+    {
+      "source": "Jordan",
+      "target": "Protests",
+      "value": 3311
+    },
+    {
+      "source": "Jordan",
+      "target": "Riots",
+      "value": 394
+    },
+    {
+      "source": "Jordan",
+      "target": "Strategic developments",
+      "value": 153
+    },
+    {
+      "source": "Jordan",
+      "target": "Violence against civilians",
+      "value": 19
+    },
+    {
+      "source": "Kuwait",
+      "target": "Battles",
+      "value": 1
+    },
+    {
+      "source": "Kuwait",
+      "target": "Protests",
+      "value": 92
+    },
+    {
+      "source": "Kuwait",
+      "target": "Riots",
+      "value": 3
+    },
+    {
+      "source": "Kuwait",
+      "target": "Strategic developments",
+      "value": 33
+    },
+    {
+      "source": "Kuwait",
+      "target": "Violence against civilians",
+      "value": 1
+    },
+    {
+      "source": "Lebanon",
+      "target": "Battles",
+      "value": 1055
+    },
+    {
+      "source": "Lebanon",
+      "target": "Explosions/Remote violence",
+      "value": 16723
+    },
+    {
+      "source": "Lebanon",
+      "target": "Protests",
+      "value": 10683
+    },
+    {
+      "source": "Lebanon",
+      "target": "Riots",
+      "value": 2766
+    },
+    {
+      "source": "Lebanon",
+      "target": "Strategic developments",
+      "value": 2633
+    },
+    {
+      "source": "Lebanon",
+      "target": "Violence against civilians",
+      "value": 434
+    },
+    {
+      "source": "Oman",
+      "target": "Battles",
+      "value": 1
+    },
+    {
+      "source": "Oman",
+      "target": "Explosions/Remote violence",
+      "value": 1
+    },
+    {
+      "source": "Oman",
+      "target": "Protests",
+      "value": 26
+    },
+    {
+      "source": "Oman",
+      "target": "Riots",
+      "value": 6
+    },
+    {
+      "source": "Oman",
+      "target": "Strategic developments",
+      "value": 30
+    },
+    {
+      "source": "Oman",
+      "target": "Violence against civilians",
+      "value": 6
+    },
+    {
+      "source": "Palestine",
+      "target": "Battles",
+      "value": 6239
+    },
+    {
+      "source": "Palestine",
+      "target": "Explosions/Remote violence",
+      "value": 23025
+    },
+    {
+      "source": "Palestine",
+      "target": "Protests",
+      "value": 6089
+    },
+    {
+      "source": "Palestine",
+      "target": "Riots",
+      "value": 30787
+    },
+    {
+      "source": "Palestine",
+      "target": "Strategic developments",
+      "value": 14773
+    },
+    {
+      "source": "Palestine",
+      "target": "Violence against civilians",
+      "value": 6083
+    },
+    {
+      "source": "Qatar",
+      "target": "Explosions/Remote violence",
+      "value": 2
+    },
+    {
+      "source": "Qatar",
+      "target": "Protests",
+      "value": 44
+    },
+    {
+      "source": "Qatar",
+      "target": "Riots",
+      "value": 2
+    },
+    {
+      "source": "Qatar",
+      "target": "Strategic developments",
+      "value": 18
+    },
+    {
+      "source": "Saudi Arabia",
+      "target": "Battles",
+      "value": 668
+    },
+    {
+      "source": "Saudi Arabia",
+      "target": "Explosions/Remote violence",
+      "value": 2331
+    },
+    {
+      "source": "Saudi Arabia",
+      "target": "Protests",
+      "value": 18
+    },
+    {
+      "source": "Saudi Arabia",
+      "target": "Riots",
+      "value": 6
+    },
+    {
+      "source": "Saudi Arabia",
+      "target": "Strategic developments",
+      "value": 484
+    },
+    {
+      "source": "Saudi Arabia",
+      "target": "Violence against civilians",
+      "value": 48
+    },
+    {
+      "source": "Syria",
+      "target": "Battles",
+      "value": 29343
+    },
+    {
+      "source": "Syria",
+      "target": "Explosions/Remote violence",
+      "value": 81724
+    },
+    {
+      "source": "Syria",
+      "target": "Protests",
+      "value": 5820
+    },
+    {
+      "source": "Syria",
+      "target": "Riots",
+      "value": 594
+    },
+    {
+      "source": "Syria",
+      "target": "Strategic developments",
+      "value": 12646
+    },
+    {
+      "source": "Syria",
+      "target": "Violence against civilians",
+      "value": 15354
+    },
+    {
+      "source": "Turkey",
+      "target": "Battles",
+      "value": 3692
+    },
+    {
+      "source": "Turkey",
+      "target": "Explosions/Remote violence",
+      "value": 1727
+    },
+    {
+      "source": "Turkey",
+      "target": "Protests",
+      "value": 32055
+    },
+    {
+      "source": "Turkey",
+      "target": "Riots",
+      "value": 727
+    },
+    {
+      "source": "Turkey",
+      "target": "Strategic developments",
+      "value": 7547
+    },
+    {
+      "source": "Turkey",
+      "target": "Violence against civilians",
+      "value": 938
+    },
+    {
+      "source": "United Arab Emirates",
+      "target": "Explosions/Remote violence",
+      "value": 10
+    },
+    {
+      "source": "United Arab Emirates",
+      "target": "Protests",
+      "value": 11
+    },
+    {
+      "source": "United Arab Emirates",
+      "target": "Riots",
+      "value": 2
+    },
+    {
+      "source": "United Arab Emirates",
+      "target": "Strategic developments",
+      "value": 19
+    },
+    {
+      "source": "United Arab Emirates",
+      "target": "Violence against civilians",
+      "value": 5
+    },
+    {
+      "source": "Yemen",
+      "target": "Battles",
+      "value": 26265
+    },
+    {
+      "source": "Yemen",
+      "target": "Explosions/Remote violence",
+      "value": 48168
+    },
+    {
+      "source": "Yemen",
+      "target": "Protests",
+      "value": 20725
+    },
+    {
+      "source": "Yemen",
+      "target": "Riots",
+      "value": 670
+    },
+    {
+      "source": "Yemen",
+      "target": "Strategic developments",
+      "value": 6664
+    },
+    {
+      "source": "Yemen",
+      "target": "Violence against civilians",
+      "value": 5432
+    }
+  ]
+}
