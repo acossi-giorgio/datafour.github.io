@@ -80,34 +80,37 @@ function renderNetworkGraph(container, datasets) {
       .attr('style', 'max-width: 100%; height: auto;');
 
   const countryNodes = nodes.filter(d => d.group === 'country');
-  const otherNodes = nodes.filter(d => d.group !== 'country');
+  const eventTypeNodes = nodes.filter(d => d.group !== 'country');
 
-  const seededRandom = (seed) => {
-    const x = Math.sin(seed * 9999) * 10000;
-    return x - Math.floor(x);
-  };
-
-  const innerRadius = 1000;
-  countryNodes.forEach((d, i) => {
-    const angle = seededRandom(i * 7) * 2 * Math.PI;
-    const radius = seededRandom(i * 13) * innerRadius;
-    d.x = centerX + radius * Math.cos(angle);
-    d.y = centerY + radius * Math.sin(angle);
+  const innerRadius = 120;
+  eventTypeNodes.forEach((d, i) => {
+    const angle = (2 * Math.PI * i) / eventTypeNodes.length - Math.PI / 2;
+    d.x = centerX + innerRadius * Math.cos(angle);
+    d.y = centerY + innerRadius * Math.sin(angle);
   });
 
-  const outerRadius = 300;
-  otherNodes.forEach((d, i) => {
-    const angle = (2 * Math.PI * i) / otherNodes.length - Math.PI / 2;
+  const outerRadius = 280;
+  countryNodes.forEach((d, i) => {
+    const angle = (2 * Math.PI * i) / countryNodes.length - Math.PI / 2;
     d.x = centerX + outerRadius * Math.cos(angle);
     d.y = centerY + outerRadius * Math.sin(angle);
-    d.fx = centerX + outerRadius * Math.cos(angle);
-    d.fy = centerY + outerRadius * Math.sin(angle);
   });
 
-  const simulation = d3.forceSimulation(nodes)
-      .force("link", d3.forceLink(links).id(d => d.id).distance(150).strength(0.1))
-      .force("charge", d3.forceManyBody().strength(-200))
-      .force("collide", d3.forceCollide().radius(30));
+  nodes.forEach(d => {
+    d.fx = d.x;
+    d.fy = d.y;
+  });
+
+  const nodeMap = new Map(nodes.map(d => [d.id, d]));
+
+  links.forEach(link => {
+    if (typeof link.source === 'string') {
+      link.source = nodeMap.get(link.source);
+    }
+    if (typeof link.target === 'string') {
+      link.target = nodeMap.get(link.target);
+    }
+  });
 
   const link = svg.append("g")
       .attr("stroke", "#999")
@@ -125,10 +128,9 @@ function renderNetworkGraph(container, datasets) {
     .data(nodes)
     .join("circle")
       .attr("class", "network-node")
-      .attr("r", d => d.group === 'country' ? 15 : 10)
+      .attr("r", 12)
       .attr("fill", d => d.group === 'country' ? "#1f77b4" : "#ff7f0e")
-      .style("cursor", "pointer")
-      .call(drag(simulation));
+      .style("cursor", "pointer");
 
   const tooltip = d3.select(container)
       .append("div")
@@ -167,7 +169,7 @@ function renderNetworkGraph(container, datasets) {
     link.style("opacity", 0.05);
     labels.style("opacity", 0.1);
 
-    d3.select(this).style("opacity", 1).attr("stroke", "#333");
+    d3.select(this).style("opacity", 1);
     
     const connectedLinks = links.filter(l => getLinkId(l.source) === d.id || getLinkId(l.target) === d.id);
     const neighborIds = new Set();
@@ -214,43 +216,17 @@ function renderNetworkGraph(container, datasets) {
     tooltip.style("opacity", 0);
   });
 
-  simulation.on("tick", () => {
-    link
-        .attr("x1", d => d.source.x)
-        .attr("y1", d => d.source.y)
-        .attr("x2", d => d.target.x)
-        .attr("y2", d => d.target.y);
+  link
+      .attr("x1", d => d.source.x)
+      .attr("y1", d => d.source.y)
+      .attr("x2", d => d.target.x)
+      .attr("y2", d => d.target.y);
 
-    node
-        .attr("cx", d => d.x)
-        .attr("cy", d => d.y);
-        
-    labels
-        .attr("x", d => d.x)
-        .attr("y", d => d.y);
-  });
-
-  function drag(simulation) {
-    function dragstarted(event) {
-      if (!event.active) simulation.alphaTarget(0.3).restart();
-      event.subject.fx = event.subject.x;
-      event.subject.fy = event.subject.y;
-    }
-
-    function dragged(event) {
-      event.subject.fx = event.x;
-      event.subject.fy = event.y;
-    }
-
-    function dragended(event) {
-      if (!event.active) simulation.alphaTarget(0);
-      event.subject.fx = null;
-      event.subject.fy = null;
-    }
-
-    return d3.drag()
-        .on("start", dragstarted)
-        .on("drag", dragged)
-        .on("end", dragended);
-  }
+  node
+      .attr("cx", d => d.x)
+      .attr("cy", d => d.y);
+      
+  labels
+      .attr("x", d => d.x)
+      .attr("y", d => d.y);
 }
