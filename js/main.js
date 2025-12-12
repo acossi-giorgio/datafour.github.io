@@ -7,7 +7,8 @@ async function init() {
     politicalViolenceEvents: await loadCSV('mea_number_of_political_violence_events_by_country_year.csv'),
     civilianFatalities: await loadCSV('mea_number_of_reported_civilian_fatalities_by_country_year.csv'),
     meaAggregatedData: await loadCSV('mea_aggregated_data.csv'),
-    aggregatedMapData: await loadCSV('aggregated_map_data.csv')
+    aggregatedMapData: await loadCSV('aggregated_map_data.csv'),
+    networkData: await loadJSON('network_data.json')
   }
 
   await loadComponent('navbar-container', 'components/navbar.html');
@@ -16,6 +17,7 @@ async function init() {
   await loadComponent('chapter-2-container', 'components/chapter_2.html');
   await loadComponent('chapter-3-container', 'components/chapter_3.html');
   await loadComponent('chapter-4-container', 'components/chapter_4.html');
+  await loadComponent('chapter-5-container', 'components/chapter_5.html');
   await loadComponent('footer-container', 'components/footer.html');
 
   await loadComponent('grouped-bar-container', 'components/charts/grouped_bar.html');
@@ -24,6 +26,7 @@ async function init() {
   await loadComponent('waffle-container', 'components/charts/waffle.html');
   await loadComponent('circlepacking-container', 'components/charts/circlepacking.html');
   await loadComponent('bar-horizontal-container', 'components/charts/bar_horizontal.html');
+  await loadComponent('network-graph-container', 'components/charts/network_graph.html');
   await loadComponent('histogram-container', 'components/charts/histogram.html');
   await loadComponent('ridgeline-plot-container', 'components/charts/ridgeline_plot.html');
   await loadComponent('boxplot-container', 'components/charts/box_plot.html');
@@ -32,11 +35,13 @@ async function init() {
   await loadComponent('symbolic-map-chart', 'components/charts/symbolic_map.html');
 
   await loadComponent('cartogram-container', 'components/charts/cartogram.html');
+  await loadComponent('sankey-container', 'components/charts/sankey.html');
 
   renderChart('grouped-bar-chart', renderGroupedBarChart, datasets);
   renderChart('stacked-100-chart', renderStacked100Chart, datasets);
   renderChart('heatmap-chart', renderHeatmapChart, datasets);
   renderChart('bar-horizontal-chart', renderBarHorizontalChart, datasets);
+  renderChart('network-graph-chart', renderNetworkGraph, datasets);
   renderChart('waffle-chart', renderWaffleChart, datasets);
   renderChart('circlepacking-chart', renderCirclePacking, datasets); 
   renderChart('histogram-chart', renderHistogramChart, datasets);
@@ -46,6 +51,8 @@ async function init() {
   renderChart('choropleth-chart', renderChoroplethMap, datasets);
   renderChart('symbolic-map-chart', renderSymbolicMapChart, datasets);
   renderChart('cartogram-chart', renderCartogram, datasets);
+
+  renderChart('sankey-chart', renderSankeyChart, datasets);
 
   setupMobileNavAutoClose();
 }

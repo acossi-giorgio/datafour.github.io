@@ -77,10 +77,6 @@
       "group": "event_type"
     },
     {
-      "id": "Strategic developments",
-      "group": "event_type"
-    },
-    {
       "id": "Violence against civilians",
       "group": "event_type"
     }
@@ -99,17 +95,12 @@
     {
       "source": "Bahrain",
       "target": "Protests",
-      "value": 9353
+      "value": 9345
     },
     {
       "source": "Bahrain",
       "target": "Riots",
-      "value": 4158
-    },
-    {
-      "source": "Bahrain",
-      "target": "Strategic developments",
-      "value": 130
+      "value": 4154
     },
     {
       "source": "Bahrain",
@@ -129,17 +120,12 @@
     {
       "source": "Iran",
       "target": "Protests",
-      "value": 28786
+      "value": 28784
     },
     {
       "source": "Iran",
       "target": "Riots",
       "value": 1280
-    },
-    {
-      "source": "Iran",
-      "target": "Strategic developments",
-      "value": 1316
     },
     {
       "source": "Iran",
@@ -149,12 +135,12 @@
     {
       "source": "Iraq",
       "target": "Battles",
-      "value": 13243
+      "value": 13235
     },
     {
       "source": "Iraq",
       "target": "Explosions/Remote violence",
-      "value": 31412
+      "value": 31399
     },
     {
       "source": "Iraq",
@@ -168,13 +154,8 @@
     },
     {
       "source": "Iraq",
-      "target": "Strategic developments",
-      "value": 7452
-    },
-    {
-      "source": "Iraq",
       "target": "Violence against civilians",
-      "value": 3659
+      "value": 3658
     },
     {
       "source": "Israel",
@@ -184,12 +165,12 @@
     {
       "source": "Israel",
       "target": "Explosions/Remote violence",
-      "value": 5099
+      "value": 5098
     },
     {
       "source": "Israel",
       "target": "Protests",
-      "value": 9529
+      "value": 9528
     },
     {
       "source": "Israel",
@@ -198,13 +179,8 @@
     },
     {
       "source": "Israel",
-      "target": "Strategic developments",
-      "value": 2180
-    },
-    {
-      "source": "Israel",
       "target": "Violence against civilians",
-      "value": 308
+      "value": 307
     },
     {
       "source": "Jordan",
@@ -228,11 +204,6 @@
     },
     {
       "source": "Jordan",
-      "target": "Strategic developments",
-      "value": 153
-    },
-    {
-      "source": "Jordan",
       "target": "Violence against civilians",
       "value": 19
     },
@@ -253,11 +224,6 @@
     },
     {
       "source": "Kuwait",
-      "target": "Strategic developments",
-      "value": 33
-    },
-    {
-      "source": "Kuwait",
       "target": "Violence against civilians",
       "value": 1
     },
@@ -269,7 +235,7 @@
     {
       "source": "Lebanon",
       "target": "Explosions/Remote violence",
-      "value": 16723
+      "value": 16721
     },
     {
       "source": "Lebanon",
@@ -280,11 +246,6 @@
       "source": "Lebanon",
       "target": "Riots",
       "value": 2766
-    },
-    {
-      "source": "Lebanon",
-      "target": "Strategic developments",
-      "value": 2633
     },
     {
       "source": "Lebanon",
@@ -313,11 +274,6 @@
     },
     {
       "source": "Oman",
-      "target": "Strategic developments",
-      "value": 30
-    },
-    {
-      "source": "Oman",
       "target": "Violence against civilians",
       "value": 6
     },
@@ -339,12 +295,7 @@
     {
       "source": "Palestine",
       "target": "Riots",
-      "value": 30787
-    },
-    {
-      "source": "Palestine",
-      "target": "Strategic developments",
-      "value": 14773
+      "value": 30786
     },
     {
       "source": "Palestine",
@@ -367,24 +318,19 @@
       "value": 2
     },
     {
-      "source": "Qatar",
-      "target": "Strategic developments",
-      "value": 18
-    },
-    {
       "source": "Saudi Arabia",
       "target": "Battles",
-      "value": 668
+      "value": 600
     },
     {
       "source": "Saudi Arabia",
       "target": "Explosions/Remote violence",
-      "value": 2331
+      "value": 1969
     },
     {
       "source": "Saudi Arabia",
       "target": "Protests",
-      "value": 18
+      "value": 17
     },
     {
       "source": "Saudi Arabia",
@@ -393,13 +339,8 @@
     },
     {
       "source": "Saudi Arabia",
-      "target": "Strategic developments",
-      "value": 484
-    },
-    {
-      "source": "Saudi Arabia",
       "target": "Violence against civilians",
-      "value": 48
+      "value": 45
     },
     {
       "source": "Syria",
@@ -423,23 +364,18 @@
     },
     {
       "source": "Syria",
-      "target": "Strategic developments",
-      "value": 12646
-    },
-    {
-      "source": "Syria",
       "target": "Violence against civilians",
       "value": 15354
     },
     {
       "source": "Turkey",
       "target": "Battles",
-      "value": 3692
+      "value": 3688
     },
     {
       "source": "Turkey",
       "target": "Explosions/Remote violence",
-      "value": 1727
+      "value": 1725
     },
     {
       "source": "Turkey",
@@ -449,17 +385,12 @@
     {
       "source": "Turkey",
       "target": "Riots",
-      "value": 727
-    },
-    {
-      "source": "Turkey",
-      "target": "Strategic developments",
-      "value": 7547
+      "value": 726
     },
     {
       "source": "Turkey",
       "target": "Violence against civilians",
-      "value": 938
+      "value": 937
     },
     {
       "source": "United Arab Emirates",
@@ -478,43 +409,33 @@
     },
     {
       "source": "United Arab Emirates",
-      "target": "Strategic developments",
-      "value": 19
-    },
-    {
-      "source": "United Arab Emirates",
       "target": "Violence against civilians",
       "value": 5
     },
     {
       "source": "Yemen",
       "target": "Battles",
-      "value": 26265
+      "value": 24235
     },
     {
       "source": "Yemen",
       "target": "Explosions/Remote violence",
-      "value": 48168
+      "value": 42861
     },
     {
       "source": "Yemen",
       "target": "Protests",
-      "value": 20725
+      "value": 20493
     },
     {
       "source": "Yemen",
       "target": "Riots",
-      "value": 670
-    },
-    {
-      "source": "Yemen",
-      "target": "Strategic developments",
-      "value": 6664
+      "value": 617
     },
     {
       "source": "Yemen",
       "target": "Violence against civilians",
-      "value": 5432
+      "value": 5191
     }
   ]
 }

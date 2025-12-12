@@ -1,0 +1,67 @@
+<div
+  id="sankey-chart"
+  class="card-shell-narrow chart-wrapper"
+  style="font-family: 'Roboto Slab', serif"
+>
+  <div class="h4 pt-2 fw-bold text-center">
+    The Complexity of Modern Conflicts
+  </div>
+  <div class="h6 pt-2 mb-4 text-center text-muted">
+    The composition of conflicts
+  </div>
+  <div
+    class="d-flex flex-wrap justify-content-center align-items-center gap-4 mb-3"
+    id="sankey-controls"
+  >
+    <div class="mt-2 d-flex align-items-center gap-2">
+      <label
+        for="sankey-country-select"
+        class="text-uppercase small fw-semibold mb-0"
+        >Country</label
+      >
+      <select
+        id="sankey-country-select"
+        class="form-select form-select-sm chart-select"
+      ></select>
+    </div>
+    <div class="mt-2 d-flex align-items-center gap-2">
+      <label
+        for="sankey-year-start"
+        class="text-uppercase small fw-semibold mb-0"
+        >From</label
+      >
+      <select
+        id="sankey-year-start"
+        class="form-select form-select-sm chart-select"
+        style="width: 90px"
+      ></select>
+    </div>
+    <div class="mt-2 d-flex align-items-center gap-2">
+      <label for="sankey-year-end" class="text-uppercase small fw-semibold mb-0"
+        >To</label
+      >
+      <select
+        id="sankey-year-end"
+        class="form-select form-select-sm chart-select"
+        style="width: 90px"
+      ></select>
+    </div>
+  </div>
+
+  <div class="text-center">
+    <svg id="sankey-svg" width="100%"></svg>
+  </div>
+
+  <div class="card-narrow">
+    <p class="mt-2 mb-0 pt-2 text-muted small text-start">
+      This Sankey diagram illustrates the anatomy of conflict by mapping the
+      flow from primary event categories to specific sub-events for a selected
+      country and time period. The width of each stream corresponds to the
+      frequency of incidents, immediately highlighting the most dominant forms
+      of violence, while color coding differentiates the nature of each event.
+      This visualization reveals the underlying structure of instability,
+      showing how broad patterns of unrest, armed conflict, and violence against
+      civilians translate into specific actions on the ground.
+    </p>
+  </div>
+</div>

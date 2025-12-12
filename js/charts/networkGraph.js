@@ -1,16 +1,76 @@
 function renderNetworkGraph(container, datasets) {
   const data = datasets.networkData;
-  // Clone data to avoid mutation issues if re-rendered
   const nodes = data.nodes.map(d => ({...d}));
   const links = data.links.map(d => ({...d}));
 
+  function getLinkId(linkEnd) {
+    return typeof linkEnd === 'object' ? linkEnd.id : linkEnd;
+  }
+
+  function getCountryTooltip(countryId) {
+    const connectedLinks = links.filter(l => getLinkId(l.source) === countryId || getLinkId(l.target) === countryId);
+    const totalEvents = connectedLinks.reduce((sum, l) => sum + l.value, 0);
+    
+    const typeComposition = {};
+    connectedLinks.forEach(link => {
+      const sourceId = getLinkId(link.source);
+      const targetId = getLinkId(link.target);
+      const typeId = targetId === countryId ? sourceId : targetId;
+      if (!typeComposition[typeId]) {
+        typeComposition[typeId] = 0;
+      }
+      typeComposition[typeId] += link.value;
+    });
+
+    const sortedTypes = Object.entries(typeComposition)
+      .sort((a, b) => b[1] - a[1]);
+
+    let html = `<div style="text-align: center;"><strong>${countryId}</strong></div>Total Events:${totalEvents}<hr style="margin: 4px 0; border: 0; border-top: 1px solid rgba(255,255,255,0.3);">`;
+    
+    sortedTypes.forEach(([type, count], index) => {
+      const percentage = ((count / totalEvents) * 100).toFixed(1);
+      html += `${index > 0 ? '<br>' : ''}${type}: ${count} (${percentage}%)`;
+    });
+
+    return html;
+  }
+
+  function getEventTypeTooltip(typeId) {
+    const connectedLinks = links.filter(l => getLinkId(l.source) === typeId || getLinkId(l.target) === typeId);
+    const totalEvents = connectedLinks.reduce((sum, l) => sum + l.value, 0);
+    
+    const countryComposition = {};
+    connectedLinks.forEach(link => {
+      const sourceId = getLinkId(link.source);
+      const targetId = getLinkId(link.target);
+      const countryId = sourceId === typeId ? targetId : sourceId;
+      if (!countryComposition[countryId]) {
+        countryComposition[countryId] = 0;
+      }
+      countryComposition[countryId] += link.value;
+    });
+
+    const sortedCountries = Object.entries(countryComposition)
+      .sort((a, b) => b[1] - a[1]);
+
+    let html = `<div style="text-align: center;"><strong>${typeId}</strong></div><strong>Total Events:</strong> ${totalEvents}<hr style="margin: 4px 0; border: 0; border-top: 1px solid rgba(255,255,255,0.3);">`;
+    
+    sortedCountries.forEach(([country, count], index) => {
+      const percentage = ((count / totalEvents) * 100).toFixed(1);
+      html += `${index > 0 ? '<br>' : ''}<strong>${country}:</strong> ${count} (${percentage}%)`;
+    });
+
+    return html;
+  }
+
   const width = 800;
   const height = 800;
+  const centerX = width / 2;
+  const centerY = height / 2;
 
   const root = d3.select(container);
   const containerDiv = root.select('#network-graph-container');
   
-  // Clear previous
   containerDiv.selectAll('*').remove();
 
   const svg = containerDiv.append('svg')
@@ -19,14 +79,39 @@ function renderNetworkGraph(container, datasets) {
       .attr('viewBox', [-50, 50, 900, 700])
       .attr('style', 'max-width: 100%; height: auto;');
 
-  // Increased repulsion and distance to spread nodes out
-  const simulation = d3.forceSimulation(nodes)
-      .force("link", d3.forceLink(links).id(d => d.id).distance(250))
-      .force("charge", d3.forceManyBody().strength(-1000))
-      .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collide", d3.forceCollide().radius(60));
+  const countryNodes = nodes.filter(d => d.group === 'country');
+  const eventTypeNodes = nodes.filter(d => d.group !== 'country');
 
-  // Links with lower default opacity
+  const innerRadius = 120;
+  eventTypeNodes.forEach((d, i) => {
+    const angle = (2 * Math.PI * i) / eventTypeNodes.length - Math.PI / 2;
+    d.x = centerX + innerRadius * Math.cos(angle);
+    d.y = centerY + innerRadius * Math.sin(angle);
+  });
+
+  const outerRadius = 280;
+  countryNodes.forEach((d, i) => {
+    const angle = (2 * Math.PI * i) / countryNodes.length - Math.PI / 2;
+    d.x = centerX + outerRadius * Math.cos(angle);
+    d.y = centerY + outerRadius * Math.sin(angle);
+  });
+
+  nodes.forEach(d => {
+    d.fx = d.x;
+    d.fy = d.y;
+  });
+
+  const nodeMap = new Map(nodes.map(d => [d.id, d]));
+
+  links.forEach(link => {
+    if (typeof link.source === 'string') {
+      link.source = nodeMap.get(link.source);
+    }
+    if (typeof link.target === 'string') {
+      link.target = nodeMap.get(link.target);
+    }
+  });
+
   const link = svg.append("g")
       .attr("stroke", "#999")
       .attr("stroke-opacity", 0.3)
@@ -34,9 +119,8 @@ function renderNetworkGraph(container, datasets) {
     .data(links)
     .join("line")
       .attr("class", "network-link")
-      .attr("stroke-width", d => Math.max(1, Math.sqrt(d.value) * 0.05)); 
+      .attr("stroke-width", d => Math.max(1, Math.sqrt(d.value) * 0.05));
 
-  // Nodes
   const node = svg.append("g")
       .attr("stroke", "#fff")
       .attr("stroke-width", 1.5)
@@ -44,18 +128,28 @@ function renderNetworkGraph(container, datasets) {
     .data(nodes)
     .join("circle")
       .attr("class", "network-node")
-      .attr("r", d => d.group === 'country' ? 15 : 10) // Slightly larger nodes
+      .attr("r", 12)
       .attr("fill", d => d.group === 'country' ? "#1f77b4" : "#ff7f0e")
-      .style("cursor", "pointer")
-      .call(drag(simulation));
+      .style("cursor", "pointer");
 
-  node.append("title")
-      .text(d => d.id);
+  const tooltip = d3.select(container)
+      .append("div")
+      .style("position", "absolute")
+      .style("background-color", "rgba(33, 33, 33, 0.95)")
+      .style("color", "white")
+      .style("padding", "8px 12px")
+      .style("border-radius", "4px")
+      .style("font-size", "13px")
+      .style("font-family", "sans-serif")
+      .style("pointer-events", "none")
+      .style("opacity", 0)
+      .style("z-index", "1000")
+      .style("line-height", "1.4")
+      .style("text-align", "left");
 
-  // Labels with white halo for better readability
   const labels = svg.append("g")
       .attr("class", "labels")
-      .style("pointer-events", "none") // Let clicks pass through to nodes
+      .style("pointer-events", "none")
     .selectAll("text")
     .data(nodes)
     .join("text")
@@ -70,77 +164,69 @@ function renderNetworkGraph(container, datasets) {
       .style("stroke-width", "3px")
       .style("paint-order", "stroke");
 
-  // Hover Interaction
   node.on("mouseover", function(event, d) {
-    // Dim everything
     node.style("opacity", 0.1);
     link.style("opacity", 0.05);
     labels.style("opacity", 0.1);
 
-    // Highlight current node
-    d3.select(this).style("opacity", 1).attr("stroke", "#333");
+    d3.select(this).style("opacity", 1);
     
-    // Find neighbors
-    const connectedLinks = links.filter(l => l.source.id === d.id || l.target.id === d.id);
+    const connectedLinks = links.filter(l => getLinkId(l.source) === d.id || getLinkId(l.target) === d.id);
     const neighborIds = new Set();
     connectedLinks.forEach(l => {
-      neighborIds.add(l.source.id);
-      neighborIds.add(l.target.id);
+      neighborIds.add(getLinkId(l.source));
+      neighborIds.add(getLinkId(l.target));
     });
 
-    // Highlight neighbors
     node.filter(n => neighborIds.has(n.id)).style("opacity", 1);
     labels.filter(n => neighborIds.has(n.id) || n.id === d.id).style("opacity", 1);
 
-    // Highlight links
-    link.filter(l => l.source.id === d.id || l.target.id === d.id)
+    link.filter(l => getLinkId(l.source) === d.id || getLinkId(l.target) === d.id)
         .style("opacity", 0.8)
         .attr("stroke", "#555");
+
+    const tooltipContent = d.group === 'country' ? getCountryTooltip(d.id) : getEventTypeTooltip(d.id);
+    tooltip.html(tooltipContent)
+        .style("opacity", 1)
+        .style("left", (event.pageX + 10) + "px")
+        .style("top", (event.pageY + 10) + "px");
+  })
+  .on("mousemove", function(event) {
+    tooltip.style("left", (event.pageX + 10) + "px")
+        .style("top", (event.pageY + 10) + "px");
   })
   .on("mouseout", function() {
-    // Reset styles
     node.style("opacity", 1).attr("stroke", "#fff");
-    link.style("opacity", 0.3).attr("stroke", "#999");
+    link.style("opacity", 1).attr("stroke", "#999");
     labels.style("opacity", 1);
+    
+    tooltip.style("opacity", 0);
+  })
+  .on("click", function(event, d) {
+    event.stopPropagation();
+    
+    const tooltipContent = d.group === 'country' ? getCountryTooltip(d.id) : getEventTypeTooltip(d.id);
+    tooltip.html(tooltipContent)
+        .style("opacity", 1)
+        .style("left", (event.pageX + 10) + "px")
+        .style("top", (event.pageY + 10) + "px");
   });
 
-  simulation.on("tick", () => {
-    link
-        .attr("x1", d => d.source.x)
-        .attr("y1", d => d.source.y)
-        .attr("x2", d => d.target.x)
-        .attr("y2", d => d.target.y);
-
-    node
-        .attr("cx", d => d.x)
-        .attr("cy", d => d.y);
-        
-    labels
-        .attr("x", d => d.x)
-        .attr("y", d => d.y);
+  svg.on("click", function() {
+    tooltip.style("opacity", 0);
   });
 
-  function drag(simulation) {
-    function dragstarted(event) {
-      if (!event.active) simulation.alphaTarget(0.3).restart();
-      event.subject.fx = event.subject.x;
-      event.subject.fy = event.subject.y;
-    }
+  link
+      .attr("x1", d => d.source.x)
+      .attr("y1", d => d.source.y)
+      .attr("x2", d => d.target.x)
+      .attr("y2", d => d.target.y);
 
-    function dragged(event) {
-      event.subject.fx = event.x;
-      event.subject.fy = event.y;
-    }
-
-    function dragended(event) {
-      if (!event.active) simulation.alphaTarget(0);
-      event.subject.fx = null;
-      event.subject.fy = null;
-    }
-
-    return d3.drag()
-        .on("start", dragstarted)
-        .on("drag", dragged)
-        .on("end", dragended);
-  }
+  node
+      .attr("cx", d => d.x)
+      .attr("cy", d => d.y);
+      
+  labels
+      .attr("x", d => d.x)
+      .attr("y", d => d.y);
 }
