@@ -1,24 +1,50 @@
-<div id="sankey-chart" class="card-shell-narrow chart-wrapper" style="font-family: 'Roboto Slab', serif">
+<div
+  id="sankey-chart"
+  class="card-shell-narrow chart-wrapper"
+  style="font-family: 'Roboto Slab', serif"
+>
   <div class="h4 pt-2 fw-bold text-center">
-   The Complexity of Modern Conflicts
+    The Complexity of Modern Conflicts
   </div>
   <div class="h6 pt-2 mb-4 text-center text-muted">
-    Visualize the flow from event types to sub-event types
+    The composition of conflicts
   </div>
-
-  <!-- Controls: Country and Year Range -->
-  <div class="d-flex flex-wrap justify-content-center align-items-center gap-4 mb-3" id="sankey-controls">
+  <div
+    class="d-flex flex-wrap justify-content-center align-items-center gap-4 mb-3"
+    id="sankey-controls"
+  >
     <div class="mt-2 d-flex align-items-center gap-2">
-      <label for="sankey-country-select" class="text-uppercase small fw-semibold mb-0">Country</label>
-      <select id="sankey-country-select" class="form-select form-select-sm chart-select"></select>
+      <label
+        for="sankey-country-select"
+        class="text-uppercase small fw-semibold mb-0"
+        >Country</label
+      >
+      <select
+        id="sankey-country-select"
+        class="form-select form-select-sm chart-select"
+      ></select>
     </div>
     <div class="mt-2 d-flex align-items-center gap-2">
-      <label for="sankey-year-start" class="text-uppercase small fw-semibold mb-0">From</label>
-      <select id="sankey-year-start" class="form-select form-select-sm chart-select" style="width: 90px;"></select>
+      <label
+        for="sankey-year-start"
+        class="text-uppercase small fw-semibold mb-0"
+        >From</label
+      >
+      <select
+        id="sankey-year-start"
+        class="form-select form-select-sm chart-select"
+        style="width: 90px"
+      ></select>
     </div>
     <div class="mt-2 d-flex align-items-center gap-2">
-      <label for="sankey-year-end" class="text-uppercase small fw-semibold mb-0">To</label>
-      <select id="sankey-year-end" class="form-select form-select-sm chart-select" style="width: 90px;"></select>
+      <label for="sankey-year-end" class="text-uppercase small fw-semibold mb-0"
+        >To</label
+      >
+      <select
+        id="sankey-year-end"
+        class="form-select form-select-sm chart-select"
+        style="width: 90px"
+      ></select>
     </div>
   </div>
 
@@ -28,9 +54,14 @@
 
   <div class="card-narrow">
     <p class="mt-2 mb-0 pt-2 text-muted small text-start">
-The Sankey diagram offers a clear overview of how different forms of violence unfold within a specific country and time range. Each flow connects broad event categories to their more detailed sub-events, showing how general patterns branch into concrete actions on the ground.
-The thickness of the lines highlights where violence is most concentrated, while the colours help distinguish the nature of each event.
-Together, these streams form a visual pathway through the conflict: a way to understand how various forms of unrest, attacks, and civilian harm are distributed and transformed over the years.
+      This Sankey diagram illustrates the anatomy of conflict by mapping the
+      flow from primary event categories to specific sub-events for a selected
+      country and time period. The width of each stream corresponds to the
+      frequency of incidents, immediately highlighting the most dominant forms
+      of violence, while color coding differentiates the nature of each event.
+      This visualization reveals the underlying structure of instability,
+      showing how broad patterns of unrest, armed conflict, and violence against
+      civilians translate into specific actions on the ground.
     </p>
   </div>
 </div>

@@ -197,7 +197,7 @@ function renderNetworkGraph(container, datasets) {
   })
   .on("mouseout", function() {
     node.style("opacity", 1).attr("stroke", "#fff");
-    link.style("opacity", 0.3).attr("stroke", "#999");
+    link.style("opacity", 1).attr("stroke", "#999");
     labels.style("opacity", 1);
     
     tooltip.style("opacity", 0);
